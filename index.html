@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Alpha Pension Calculator</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+            background: linear-gradient(135deg, #eef2ff, #f8fafc);
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: auto;
+            background: white;
+            padding: 30px 35px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 26px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        input,
+        select {
+            padding: 8px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+        }
+
+        .toggle {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #stopAge {
+            max-width: 120px;
+        }
+
+        .section {
+            margin-top: 30px;
+        }
+
+        h3 {
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            text-align: left;
+            font-size: 13px;
+            color: #777;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 6px;
+        }
+
+        td {
+            padding: 10px 4px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background: #fafafa;
+        }
+
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #4338ca;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .result span {
+            display: block;
+            font-size: 30px;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .amount-input {
+            width: 100px;
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <div class="container">
+        <h2>Alpha Pension Calculator</h2>
+
+        <div class="grid">
+
+            <div class="field">
+                <label>Age</label>
+                <input id="age" value="40">
+            </div>
+
+            <div class="field">
+                <label>Retirement Age</label>
+                <input id="retAge" value="68">
+            </div>
+
+            <div class="field">
+                <label>CPI %</label>
+                <input id="cpi" value="2">
+            </div>
+
+            <div class="field">
+                <label>Salary</label>
+                <input id="salary" value="40000">
+            </div>
+
+            <div class="field">
+                <label>Accrued</label>
+                <input id="accrued" value="5000">
+            </div>
+
+        </div>
+
+        <br>
+        <label><input type="checkbox" id="useStop"> Stop early</label>
+        <input id="stopAge" value="55">
+
+        <table id="tbl">
+            <tbody></tbody>
+        </table>
+        <button id="add">Add</button>
+
+        <div class="result">£ <span id="res">0</span></div>
+    </div>
+
+    <template id="row">
+        <tr>
+            <td>
+                <select class="type">
+                    <option value="self">Self</option>
+                    <option value="dependants">Dependants</option>
+                </select>
+            </td>
+            <td>
+                <select class="period">
+                    <option value="month">Month</option>
+                    <option value="year">Year</option>
+                </select>
+            </td>
+            <td>
+                <input class="amt amount-input" placeholder="£">
+            </td>
+        </tr>
+    </template>
+
+    <script type="module" src="js/ui.js"></script>
+
+</body>
+
+</html>
