@@ -6,9 +6,9 @@
 </head>
 <body>
     <script type="module">
-        import { TestRunner } from "../JsTest/source/TestRunner.js";
+        import { TestRunner } from "https://cdn.jsdelivr.net/gh/bealesd/js-test@main/source/test-runner.js";
         TestRunner.runWithTestFiles([
-            "../../tests/unit-tests.js"
+            `${window.location.origin}/tests/unit-tests.js`
         ]);
     </script>
 </body>

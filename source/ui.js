@@ -1,33 +1,54 @@
-import { calc } from "./calc.js";
+import { Calc } from "./total-pension.js";
 
-const tbody = document.querySelector("#tbl tbody");
-const tmpl = document.getElementById("row");
+class PensionCalculatorUI {
+    constructor() {
+        this.tableBody = document.querySelector("#tbl tbody");
+        this.rowTemplate = document.getElementById("row");
+        this.addRowButton = document.getElementById("add");
+        this.ageInput = document.getElementById("age");
+        this.retAgeInput = document.getElementById("retAge");
+        this.salaryInput = document.getElementById("salary");
+        this.accruedInput = document.getElementById("accrued");
+        this.cpiInput = document.getElementById("cpi");
+        this.useStopCheckbox = document.getElementById("useStop");
+        this.stopAgeInput = document.getElementById("stopAge");
+        this.resultElement = document.getElementById("res");
 
-document.getElementById("add").onclick = () => {
-    tbody.appendChild(tmpl.content.cloneNode(true));
-    update();
-};
+        document.addEventListener("input", () => this.update());
 
-document.addEventListener("input", update);
+        this.addRowButton.onclick = () => {
+            this.tableBody.appendChild(this.rowTemplate.content.cloneNode(true));
+            this.update();
+        };
 
-function rows() {
-    return [...tbody.querySelectorAll("tr")].map(r => ({
-        type: r.querySelector(".type").value,
-        period: r.querySelector(".period").value,
-        amount: +r.querySelector(".amt").value || 0
-    }));
+        // Calculate once on load using default values
+        this.update();
+    }
+
+    getRows() {
+        return [...this.tableBody.querySelectorAll("tr")].map(row => ({
+            type: row.querySelector(".type").value,
+            period: row.querySelector(".period").value,
+            amount: +row.querySelector(".amt").value || 0
+        }));
+    }
+
+    update() {
+        const memberData = {
+            age: +this.ageInput.value,
+            retAge: +this.retAgeInput.value,
+            salary: +this.salaryInput.value,
+            accrued: +this.accruedInput.value,
+            cpi: +this.cpiInput.value / 100,
+            stopAge: this.useStopCheckbox.checked ? +this.stopAgeInput.value : null,
+            rows: this.getRows()
+        };
+        this.resultElement.textContent = Calc.calculate(memberData).toFixed(0);
+    }
 }
 
-function update() {
-    let d = {
-        age: +age.value,
-        retAge: +retAge.value,
-        salary: +salary.value,
-        accrued: +accrued.value,
-        cpi: +cpi.value / 100,
-        stopAge: useStop.checked ? +stopAge.value : null,
-        rows: rows()
-    };
-
-    res.textContent = calc(d).toFixed(0);
-}
+// Instantiate the UI class when DOM is ready
+if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", () => new PensionCalculatorUI());
+else
+    new PensionCalculatorUI();
