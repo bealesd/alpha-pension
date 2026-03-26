@@ -1,5 +1,6 @@
-import { TestRunner } from "../js/TestRunner.js";
-import { Calc } from "../js/calc.js";
+import { TestRunner } from "../JsTest/source/TestRunner.js"
+import { Calc } from "../source/calc.js"
+import {Care} from "../source/care.js"; // Add this import at the top
 
 const runner = TestRunner.getInstance();
 const { it, fit, describe, expect, spy } = runner;
@@ -21,13 +22,13 @@ describe("Alpha Pension Calculator", () => {
         // Arrange
         const sut = new Calc();
         const d = baseData();
-        spy(sut, "getTotal").and.callFake(() => 15000);
+        spy(Care, "care").and.callFake(() => 15000);
 
         // Act
         const result = sut.calc(d);
 
         // Assert
-        expect(sut.getTotal).toHaveBeenCalledWith(d);
+        expect(Care.care).toHaveBeenCalledWith(d);
         expect(result).toBeGreaterThan(10000);
     });
     it("added pension increases result", () => {
@@ -72,11 +73,5 @@ describe("Alpha Pension Calculator", () => {
 
         // Assert
         expect(resultHighSalary).toBeGreaterThan(resultLowSalary);
-    });
-    it("a failing test", () => {
-        // Arrange
-
-        // Act & Assert
-        expect(1).toBeGreaterThan(2);
     });
 });

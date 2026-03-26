@@ -114,7 +114,7 @@ export class TestRunner {
 
         // Create UI elements
         this.container.innerHTML = `
-            <h1>Pension Calculator Tests</h1>
+            <h1>JS Tests</h1>
             <div class="summary"></div>
             <div class="dots"></div>
             <div class="results"></div>
@@ -131,6 +131,7 @@ export class TestRunner {
         this.allTests = [];
         this._describeStack = [];
         this._describeSections = [];
+        this._activeSpies = []
 
         // Bind test functions for destructuring
         this.describe = this.describe.bind(this);
@@ -189,6 +190,10 @@ export class TestRunner {
                 el.classList.toggle('open');
             });
             passed = false;
+        } finally {
+            for (const spy of this._activeSpies) {
+                spy.restore();
+            }
         }
         this.dots.appendChild(dot);
         // Append test to current describe section if present, else to results
@@ -281,31 +286,6 @@ export class TestRunner {
             return impl.apply(this, args);
         }
         spyFn.calls = calls;
-        spyFn.toHaveBeenCalledWith = (...expectedArgs) => {
-            if (!calls.some(call => JSON.stringify(call) === JSON.stringify(expectedArgs))) {
-                throw new Error(`Expected spy to have been called with ${JSON.stringify(expectedArgs)}, but was called with: ${JSON.stringify(calls)}`);
-            }
-        };
-        spyFn.toHaveBeenCalledTimes = (n) => {
-            if (calls.length !== n) {
-                throw new Error(`Expected spy to have been called ${n} times, but was called ${calls.length} times`);
-            }
-        };
-        spyFn.toHaveBeenCalled = () => {
-            if (calls.length === 0) {
-                throw new Error(`Expected spy to have been called at least once, but it was never called`);
-            }
-        };
-        spyFn.toHaveBeenCalledOnce = () => {
-            if (calls.length !== 1) {
-                throw new Error(`Expected spy to have been called once, but was called ${calls.length} times`);
-            }
-        };
-        spyFn.toHaveBeenCalledWithArgs = (...expectedArgs) => {
-            if (!calls.some(call => JSON.stringify(call) === JSON.stringify(expectedArgs))) {
-                throw new Error(`Expected spy to have been called with ${JSON.stringify(expectedArgs)}, but was called with: ${JSON.stringify(calls)}`);
-            }
-        };
         spyFn.original = original;
         spyFn.restore = () => { obj[methodName] = original; };
         spyFn.and = {
@@ -314,6 +294,7 @@ export class TestRunner {
             callThrough() { impl = function (...args) { return original.apply(this, args); }; return spyFn; },
         };
         obj[methodName] = spyFn;
+        this._activeSpies.push(spyFn)
         return spyFn;
     }
 
@@ -350,6 +331,31 @@ export class TestRunner {
             };
             base.toHaveBeenCalledTimes = (n) => {
                 if (value.calls.length !== n) throw new Error(`Expected spy to have been called ${n} times, but was called ${value.calls.length} times`);
+            };
+            base.toHaveBeenCalledWith = (...expectedArgs) => {
+                if (!value.calls.some(call => JSON.stringify(call) === JSON.stringify(expectedArgs))) {
+                    throw new Error(`Expected spy to have been called with ${JSON.stringify(expectedArgs)}, but was called with: ${JSON.stringify(value.calls)}`);
+                }
+            };
+            base.toHaveBeenCalledTimes = (n) => {
+                if (value.calls.length !== n) {
+                    throw new Error(`Expected spy to have been called ${n} times, but was called ${value.calls.length} times`);
+                }
+            };
+            base.toHaveBeenCalled = () => {
+                if (value.calls.length === 0) {
+                    throw new Error(`Expected spy to have been called at least once, but it was never called`);
+                }
+            };
+            base.toHaveBeenCalledOnce = () => {
+                if (value.calls.length !== 1) {
+                    throw new Error(`Expected spy to have been called once, but was called ${value.calls.length} times`);
+                }
+            };
+            base.toHaveBeenCalledWithArgs = (...expectedArgs) => {
+                if (!value.calls.some(call => JSON.stringify(call) === JSON.stringify(expectedArgs))) {
+                    throw new Error(`Expected spy to have been called with ${JSON.stringify(expectedArgs)}, but was called with: ${JSON.stringify(value.calls)}`);
+                }
             };
         }
         return base;
