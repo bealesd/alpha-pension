@@ -1,9 +1,17 @@
 import { RegularPension } from "./regular-pension.js";
 import { AddedPension } from "./added-pension.js";
+import earlyPaymentReductionFactors from "./early_payment_reduction_factors.js";
 
 export class TotalPension {
-    static calculate(memberData) {
-        const accruedAsAnnual = RegularPension.convertAccruedToAnnual(memberData, memberData.type || "self");
-        return accruedAsAnnual + RegularPension.calculate(memberData) + AddedPension.calculate(memberData);
+    calculate(memberData) {
+        const accruedAsAnnual = (new RegularPension).convertAccruedToAnnual(memberData);
+        const earlyReductionFactor = this.getEarlyReductionFactors(memberData.retAge);
+
+        return Math.round(earlyReductionFactor * (accruedAsAnnual + (new RegularPension).calculate(memberData) + (new AddedPension).calculate(memberData)));
     }
+
+    getEarlyReductionFactors = (earlyRetirementAge) => {
+        // NPA will always be 68 unless EPA has been purchased
+        return earlyPaymentReductionFactors[68][earlyRetirementAge];
+    };
 }

@@ -11,7 +11,6 @@ class PensionCalculatorUI {
         this.accruedInput = document.getElementById("accrued");
         this.cpiInput = document.getElementById("cpi");
         this.useStopCheckbox = document.getElementById("useStop");
-        this.stopAgeInput = document.getElementById("stopAge");
         this.resultElement = document.getElementById("res");
 
         document.addEventListener("input", () => this.update());
@@ -40,10 +39,9 @@ class PensionCalculatorUI {
             salary: +this.salaryInput.value,
             accrued: +this.accruedInput.value,
             cpi: +this.cpiInput.value / 100,
-            stopAge: this.useStopCheckbox.checked ? +this.stopAgeInput.value : null,
             rows: this.getRows()
         };
-        this.resultElement.textContent = TotalPension.calculate(memberData).toFixed(0);
+        this.resultElement.textContent = (new TotalPension()).calculate(memberData).toFixed(0);
     }
 }
 
