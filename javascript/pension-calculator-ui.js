@@ -1,4 +1,4 @@
-import { Calc } from "./total-pension.js";
+import { TotalPension } from "./total-pension.js";
 
 class PensionCalculatorUI {
     constructor() {
@@ -43,7 +43,7 @@ class PensionCalculatorUI {
             stopAge: this.useStopCheckbox.checked ? +this.stopAgeInput.value : null,
             rows: this.getRows()
         };
-        this.resultElement.textContent = Calc.calculate(memberData).toFixed(0);
+        this.resultElement.textContent = TotalPension.calculate(memberData).toFixed(0);
     }
 }
 

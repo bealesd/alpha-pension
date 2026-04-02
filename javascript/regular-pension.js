@@ -1,4 +1,4 @@
-export class Care {
+export class RegularPension {
     static calculate(memberData) {
         let totalPension = 0;
         const contributionRate = 0.0232;

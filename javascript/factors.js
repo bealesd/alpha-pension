@@ -1,4 +1,4 @@
-export const factors = {
+export const factors = Object.freeze({
     65: {
         16: { self: 3.61, female: 3.61, dependants: 3.92 },
         17: { self: 3.74, female: 3.74, dependants: 4.06 },
@@ -248,4 +248,4 @@ export const factors = {
         74: { self: 12.81, dependants: 14.23 },
         75: { self: 12.51, dependants: 13.92 }
     }
-}
+});

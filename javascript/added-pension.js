@@ -1,6 +1,6 @@
 import { factors } from "./factors.js";
 
-export class Added {
+export class AddedPension {
     static calculate(memberData) {
         let totalAdded = 0;
         const stopAge = memberData.stopAge ?? memberData.retAge;

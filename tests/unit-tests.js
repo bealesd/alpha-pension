@@ -1,7 +1,7 @@
 import { TestRunner } from "https://cdn.jsdelivr.net/gh/bealesd/js-test@main/source/test-runner.js"
-import { Calc } from "../source/total-pension.js";
-import { Care } from "../source/salary-pension.js";
-import { Added } from "../source/added-pension.js";
+import { TotalPension } from "../javascript/total-pension.js";
+import { RegularPension } from "../javascript/regular-pension.js";
+import { AddedPension } from "../javascript/added-pension.js";
 
 const runner = TestRunner.getInstance();
 const { it, fit, describe, expect, spy } = runner;
@@ -22,13 +22,13 @@ describe("Alpha Pension Calculator", () => {
     it("CARE produces pension", () => {
         // Arrange
         const memberData = createBaseMemberData();
-        spy(Care, "calculate").and.callFake(() => 15000);
+        spy(RegularPension, "calculate").and.callFake(() => 15000);
 
         // Act
-        const result = Calc.calculate(memberData);
+        const result = TotalPension.calculate(memberData);
 
         // Assert
-        expect(Care.calculate).toHaveBeenCalledWith(memberData);
+        expect(RegularPension.calculate).toHaveBeenCalledWith(memberData);
         expect(result).toBeGreaterThan(10000);
     });
     it("added pension increases result", () => {
@@ -37,7 +37,7 @@ describe("Alpha Pension Calculator", () => {
         d.rows = [{ type: "self", period: "month", amount: 1000 }];
 
         // Act
-        const result = Calc.calculate(d);
+        const result = TotalPension.calculate(d);
 
         // Assert
         expect(result).toBeGreaterThan(10000);
@@ -51,8 +51,8 @@ describe("Alpha Pension Calculator", () => {
         memberDataEarlyPreserve.stopAge = 55;
 
         // Act
-        const result = Calc.calculate(memberData);
-        const resultEarlyStopAge = Calc.calculate(memberDataEarlyPreserve);
+        const result = TotalPension.calculate(memberData);
+        const resultEarlyStopAge = TotalPension.calculate(memberDataEarlyPreserve);
 
         // Assert
         expect(resultEarlyStopAge).toBeLessThan(result);
@@ -65,8 +65,8 @@ describe("Alpha Pension Calculator", () => {
         memberDataHighSalary.salary = 60000;
 
         // Act
-        const resultHighSalary = Calc.calculate(memberDataHighSalary);
-        const resultLowSalary = Calc.calculate(memberDataLowSalary);
+        const resultHighSalary = TotalPension.calculate(memberDataHighSalary);
+        const resultLowSalary = TotalPension.calculate(memberDataLowSalary);
 
         // Assert
         expect(resultHighSalary).toBeGreaterThan(resultLowSalary);
