@@ -3,6 +3,7 @@ import { AddedPension } from "./added-pension.js";
 
 export class TotalPension {
     static calculate(memberData) {
-        return memberData.accrued + RegularPension.calculate(memberData) + AddedPension.calculate(memberData);
+        const accruedAsAnnual = RegularPension.convertAccruedToAnnual(memberData, memberData.type || "self");
+        return accruedAsAnnual + RegularPension.calculate(memberData) + AddedPension.calculate(memberData);
     }
 }
