@@ -20,6 +20,39 @@
      font-size: 26px;
  }
 
+ .header {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 25px;
+ }
+
+ .header h2 {
+     margin-bottom: 0;
+ }
+
+ .github-link {
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     width: 40px;
+     height: 40px;
+     border-radius: 8px;
+     color: #4f46e5;
+     transition: all 0.2s;
+     flex-shrink: 0;
+ }
+
+ .github-link:hover {
+     background-color: #eef2ff;
+     color: #4338ca;
+ }
+
+ .github-link svg {
+     width: 24px;
+     height: 24px;
+ }
+
  .grid {
      display: grid;
      grid-template-columns: repeat(3, 1fr);
@@ -42,6 +75,11 @@
      border-color: #4f46e5;
      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
  }
+
+ input:invalid {
+    border-color: red;
+    outline-color: red;
+}
 
  @media (min-width: 461px) and (max-width: 600px) {
      input {
@@ -118,7 +156,7 @@
      background: #4338ca;
  }
 
- .result {
+ .pension-forecast {
      margin-top: 30px;
      padding: 20px;
      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
@@ -126,13 +164,13 @@
      text-align: center;
  }
 
- .result span {
+ .pension-forecast span {
      display: block;
      font-size: 30px;
      font-weight: 600;
      margin-top: 6px;
  }
 
- .amount-input {
+ .added-pension-payment {
      width: 100px;
  }

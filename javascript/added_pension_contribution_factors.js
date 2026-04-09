@@ -1,4 +1,4 @@
-export const factors = Object.freeze({
+export const addedPensionByPeriodicalContributionFactors = Object.freeze({
     65: {
         16: { self: 3.61, female: 3.61, dependants: 3.92 },
         17: { self: 3.74, female: 3.74, dependants: 4.06 },
