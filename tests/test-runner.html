@@ -7,8 +7,12 @@
 <body>
     <script type="module">
         import { TestRunner } from "https://cdn.jsdelivr.net/gh/bealesd/js-test@main/source/test-runner.js";
+        let baseURL = window.location.origin;
+        if (window.location.origin === 'https://bealesd.github.io')
+            baseURL = `${window.location.origin}/alpha-pension`;
+        
         TestRunner.runWithTestFiles([
-            `${window.location.origin}/tests/unit-tests.js`
+            `${baseURL}/tests/unit-tests.js`
         ]);
     </script>
 </body>
