@@ -10,6 +10,7 @@ function createBaseMemberData() {
     return {
         age: 40,
         retirementAge: 68,
+        pensionStartAge: 68,
         salary: 40000,
         accrued: 0,
         cpi: 0.02,

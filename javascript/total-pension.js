@@ -5,7 +5,7 @@ import earlyPaymentReductionFactors from "./early_payment_reduction_factors.js";
 export class TotalPension {
     calculate(memberData) {
         const accruedAsAnnual = (new RegularPension).convertAccruedToAnnual(memberData);
-        const earlyReductionFactor = this.getEarlyReductionFactors(memberData.retirementAge);
+        const earlyReductionFactor = this.getEarlyReductionFactors(memberData.pensionStartAge);
 
         return Math.round(earlyReductionFactor * (accruedAsAnnual + (new RegularPension).calculate(memberData) + (new AddedPension).calculate(memberData)));
     }

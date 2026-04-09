@@ -16,6 +16,7 @@ class PensionCalculatorUI {
         // General pension inputs
         this.ageInput = document.getElementById("age");
         this.retirementAgeInput = document.getElementById("retirement-age");
+        this.pensionStartAgeInput = document.getElementById("pension-start-age");
         this.salaryInput = document.getElementById("salary");
         this.accruedInput = document.getElementById("accrued");
         this.cpiInput = document.getElementById("cpi");
@@ -24,6 +25,7 @@ class PensionCalculatorUI {
         this.pensionForecastElement = document.getElementById("pension-forecast-value");
 
         this.addEventListeners();
+        this.updatePensionStartAgeConstraints();
 
         this.loadState();
 
@@ -31,7 +33,13 @@ class PensionCalculatorUI {
     }
 
     addEventListeners() {
-        document.addEventListener("input", this.updatePensionForecast.bind(this));
+        document.addEventListener("input", (e) => {
+            // Update pension start age constraints when retirement age changes
+            if (e.target === this.retirementAgeInput) {
+                this.updatePensionStartAgeConstraints();
+            }
+            this.updatePensionForecast.call(this, e);
+        });
 
         this.addRowButton.onclick = (e) => {
             e.preventDefault();
@@ -46,6 +54,17 @@ class PensionCalculatorUI {
         };
 
         document.addEventListener("keydown", this.handleDataStepEvent.bind(this));
+    }
+
+    updatePensionStartAgeConstraints() {
+        const retirementAge = +this.retirementAgeInput.value;
+        // Pension start age cannot be earlier than retirement age
+        this.pensionStartAgeInput.min = retirementAge;
+        
+        // If pension start age is now below retirement age, adjust it
+        if (+this.pensionStartAgeInput.value < retirementAge) {
+            this.pensionStartAgeInput.value = retirementAge;
+        }
     }
 
     handleDataStepEvent(e) {
@@ -85,6 +104,7 @@ class PensionCalculatorUI {
             // Restore general inputs
             if (state.age !== undefined) this.ageInput.value = state.age;
             if (state.retirementAge !== undefined) this.retirementAgeInput.value = state.retirementAge;
+            if (state.pensionStartAge !== undefined) this.pensionStartAgeInput.value = state.pensionStartAge;
             if (state.salary !== undefined) this.salaryInput.value = state.salary;
             if (state.accrued !== undefined) this.accruedInput.value = state.accrued;
             if (state.cpi !== undefined) this.cpiInput.value = state.cpi;
@@ -101,6 +121,9 @@ class PensionCalculatorUI {
                     this.tableBody.appendChild(rowNode);
                 });
             }
+
+            // Validate pension start age is not before retirement age
+            this.updatePensionStartAgeConstraints();
         } catch (e) {
             console.error("Failed to load pension calculator state from localStorage", e);
         }
@@ -110,6 +133,7 @@ class PensionCalculatorUI {
         const state = {
             age: this.ageInput.value,
             retirementAge: this.retirementAgeInput.value,
+            pensionStartAge: this.pensionStartAgeInput.value,
             salary: this.salaryInput.value,
             accrued: this.accruedInput.value,
             cpi: this.cpiInput.value,
@@ -157,6 +181,7 @@ class PensionCalculatorUI {
         const memberData = {
             age: +this.ageInput.value,
             retirementAge: +this.retirementAgeInput.value,
+            pensionStartAge: +this.pensionStartAgeInput.value,
             salary: +this.salaryInput.value,
             accrued: +this.accruedInput.value,
             cpi: +this.cpiInput.value / 100,
