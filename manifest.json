@@ -16,9 +16,15 @@
       "purpose": "any maskable"
     },
     {
-      "src": "./assets/images/logo-196x96.png",
+      "src": "./assets/images/logo-96x96.png",
       "type": "image/png",
       "sizes": "96x96",
+      "purpose": "any maskable"
+    },
+     {
+      "src": "./assets/images/logo-144x144.png",
+      "type": "image/png",
+      "sizes": "144x144",
       "purpose": "any maskable"
     },
     {

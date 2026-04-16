@@ -12,7 +12,8 @@ const assets = [
     './scripts/total-pension.js',
     "./assets/images/logo-48x48.png",
     "./assets/images/logo-72x72.png",
-    "./assets/images/logo-196x96.png",
+    "./assets/images/logo-96x96.png",
+    "./assets/images/logo-144x144.png",
     "./assets/images/logo-192x192.png",
     "./assets/images/logo-512x512.png",
     './manifest.json'
@@ -49,27 +50,27 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Fetch resources - STALE WHILE REVALIDATE
 self.addEventListener('fetch', e => {
     e.respondWith(
         caches.match(e.request).then(cachedRes => {
-            const fetchPromise = fetch(e.request).then(res => {
-                // Only cache successful responses
-                if (res && res.status === 200) {
-                    const cache = caches.open(CACHE_NAME);
-                    cache.then(c => c.put(e.request, res.clone()));
+            // 1. Create the network request
+            const fetchPromise = fetch(e.request).then(networkRes => {
+                // Check if we received a valid response to cache
+                if (networkRes && networkRes.status === 200 && networkRes.type === 'basic') {
+                    const responseToCache = networkRes.clone(); // CLONE IMMEDIATELY
+
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(e.request, responseToCache);
+                    });
                 }
-                return res;
+                return networkRes;
             }).catch(err => {
-                console.error('Fetch failed for', e.request.url, err);
-                // Return cached version if fetch fails
-                return cachedRes || new Response('Offline - resource not available', {
-                    status: 503,
-                    statusText: 'Service Unavailable'
-                });
+                console.error('Fetch failed:', err);
+                // Fallback is handled below
             });
 
-            // Return cached version immediately, fetch fresh in background
+            // 2. Return the cached version if we have it (Stale), 
+            // otherwise wait for the network (Revalidate)
             return cachedRes || fetchPromise;
         })
     );
