@@ -1,28 +1,51 @@
 import { TotalPension } from "./total-pension.js";
 
+const DOM_IDS = Object.freeze({
+    form: 'pension-form',
+    age: 'age',
+    retirementAge: 'retirement-age',
+    pensionStartAge: 'pension-start-age',
+    npa: 'npa',
+    salary: 'salary',
+    accrued: 'accrued',
+    cpi: 'cpi',
+    table: 'tbl',
+    rowTemplate: 'added-pension-row',
+    addRowButton: 'add-added-pension-row',
+    resetButton: 'reset-form',
+    pensionForecastValue: 'pension-forecast-value'
+});
+
+const DOM_CLASSES = Object.freeze({
+    type: 'type',
+    period: 'period',
+    addedPensionPayment: 'added-pension-payment'
+});
+
 class PensionCalculatorUI {
     STORAGE_KEY = 'pensionCalculatorState';
 
     constructor() {
-        this.form = document.getElementById("pension-form");
+        this.form = document.getElementById(DOM_IDS.form);
 
         // Added pension table
-        this.tableBody = document.querySelector("#tbl tbody");
-        this.rowTemplate = document.getElementById("added-pension-row");
+        this.tableBody = document.querySelector(`#${DOM_IDS.table} tbody`);
+        this.rowTemplate = document.getElementById(DOM_IDS.rowTemplate);
 
-        this.addRowButton = document.getElementById("add-added-pension-row");
-        this.resetButton = document.getElementById("reset-form");
+        this.addRowButton = document.getElementById(DOM_IDS.addRowButton);
+        this.resetButton = document.getElementById(DOM_IDS.resetButton);
 
         // General pension inputs
-        this.ageInput = document.getElementById("age");
-        this.retirementAgeInput = document.getElementById("retirement-age");
-        this.pensionStartAgeInput = document.getElementById("pension-start-age");
-        this.salaryInput = document.getElementById("salary");
-        this.accruedInput = document.getElementById("accrued");
-        this.cpiInput = document.getElementById("cpi");
+        this.ageInput = document.getElementById(DOM_IDS.age);
+        this.retirementAgeInput = document.getElementById(DOM_IDS.retirementAge);
+        this.pensionStartAgeInput = document.getElementById(DOM_IDS.pensionStartAge);
+        this.npaInput = document.getElementById(DOM_IDS.npa);
+        this.salaryInput = document.getElementById(DOM_IDS.salary);
+        this.accruedInput = document.getElementById(DOM_IDS.accrued);
+        this.cpiInput = document.getElementById(DOM_IDS.cpi);
 
         // Pension forecast
-        this.pensionForecastElement = document.getElementById("pension-forecast-value");
+        this.pensionForecastElement = document.getElementById(DOM_IDS.pensionForecastValue);
 
         this.addEventListeners();
         this.updatePensionStartAgeConstraints();
@@ -37,7 +60,12 @@ class PensionCalculatorUI {
             // Update pension start age constraints when retirement age changes
             if (e.target === this.retirementAgeInput) {
                 this.updatePensionStartAgeConstraints();
+                this.updateNpaConstraints();
             }
+
+            if (e.target === this.pensionStartAgeInput)
+                this.updateNpaConstraints();
+
             this.updatePensionForecast.call(this, e);
         });
 
@@ -60,11 +88,19 @@ class PensionCalculatorUI {
         const retirementAge = +this.retirementAgeInput.value;
         // Pension start age cannot be earlier than retirement age
         this.pensionStartAgeInput.min = retirementAge;
-        
+
         // If pension start age is now below retirement age, adjust it
-        if (+this.pensionStartAgeInput.value < retirementAge) {
+        if (+this.pensionStartAgeInput.value < retirementAge)
             this.pensionStartAgeInput.value = retirementAge;
-        }
+    }
+
+    updateNpaConstraints() {
+        // NPA cannot be earlier than pension start age
+        const pensionStartAge = this.pensionStartAgeInput.value;
+        this.npaInput.min = pensionStartAge;
+
+        if (+this.npaInput.value < pensionStartAge)
+            this.npaInput.value = pensionStartAge;
     }
 
     handleDataStepEvent(e) {
@@ -85,9 +121,9 @@ class PensionCalculatorUI {
 
     getRows() {
         return [...this.tableBody.querySelectorAll("tr")].map(row => ({
-            type: row.querySelector(".type").value,
-            period: row.querySelector(".period").value,
-            addedPensionPayment: row.querySelector(".added-pension-payment").value
+            type: row.querySelector(`.${DOM_CLASSES.type}`).value,
+            period: row.querySelector(`.${DOM_CLASSES.period}`).value,
+            addedPensionPayment: row.querySelector(`.${DOM_CLASSES.addedPensionPayment}`).value
         })).filter(row => {
             const payment = row.addedPensionPayment;
             return payment !== "" && Number(payment) !== 0;
@@ -105,6 +141,7 @@ class PensionCalculatorUI {
             if (state.age !== undefined) this.ageInput.value = state.age;
             if (state.retirementAge !== undefined) this.retirementAgeInput.value = state.retirementAge;
             if (state.pensionStartAge !== undefined) this.pensionStartAgeInput.value = state.pensionStartAge;
+            if (state.npa !== undefined) this.npaInput.value = state.npa;
             if (state.salary !== undefined) this.salaryInput.value = state.salary;
             if (state.accrued !== undefined) this.accruedInput.value = state.accrued;
             if (state.cpi !== undefined) this.cpiInput.value = state.cpi;
@@ -115,15 +152,16 @@ class PensionCalculatorUI {
 
                 state.rows.forEach(rowData => {
                     const rowNode = this.rowTemplate.content.cloneNode(true);
-                    rowNode.querySelector(".type").value = rowData.type || "";
-                    rowNode.querySelector(".period").value = rowData.period || "";
-                    rowNode.querySelector(".added-pension-payment").value = rowData.addedPensionPayment || "";
+                    rowNode.querySelector(`.${DOM_CLASSES.type}`).value = rowData.type || "";
+                    rowNode.querySelector(`.${DOM_CLASSES.period}`).value = rowData.period || "";
+                    rowNode.querySelector(`.${DOM_CLASSES.addedPensionPayment}`).value = rowData.addedPensionPayment || "";
                     this.tableBody.appendChild(rowNode);
                 });
             }
 
             // Validate pension start age is not before retirement age
             this.updatePensionStartAgeConstraints();
+            this.updateNpaConstraints();
         } catch (e) {
             console.error("Failed to load pension calculator state from localStorage", e);
         }
@@ -134,6 +172,7 @@ class PensionCalculatorUI {
             age: this.ageInput.value,
             retirementAge: this.retirementAgeInput.value,
             pensionStartAge: this.pensionStartAgeInput.value,
+            npa: this.npaInput.value,
             salary: this.salaryInput.value,
             accrued: this.accruedInput.value,
             cpi: this.cpiInput.value,
@@ -182,6 +221,7 @@ class PensionCalculatorUI {
             age: +this.ageInput.value,
             retirementAge: +this.retirementAgeInput.value,
             pensionStartAge: +this.pensionStartAgeInput.value,
+            npa: +this.npaInput.value,
             salary: +this.salaryInput.value,
             accrued: +this.accruedInput.value,
             cpi: +this.cpiInput.value / 100,

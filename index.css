@@ -104,6 +104,19 @@
      margin-bottom: 4px;
  }
 
+ .help-text {
+     display: block;
+     margin-top: 6px;
+     font-size: 12px;
+     color: #4b5563;
+     line-height: 1.4;
+ }
+
+ .field input:focus + .help-text,
+ .field select:focus + .help-text {
+     color: #1f2937;
+ }
+
  .toggle {
      margin-top: 10px;
      display: flex;

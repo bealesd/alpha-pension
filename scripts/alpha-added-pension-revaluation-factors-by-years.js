@@ -1,4 +1,9 @@
-const addedPensionRevaluationFactorByYears = {
+const alphaAddedPensionRevaluationFactorByYears = {
+    // Alpha Added Pension revaluation factors
+    // Source:
+    // Government Actuary's Department
+    // Civil Service Pension Schemes - Consolidated Factor Spreadsheet
+    // Added pension - x-728
     0: {
         factor: 1
     },
@@ -154,4 +159,4 @@ const addedPensionRevaluationFactorByYears = {
     }
 };
 
-export default addedPensionRevaluationFactorByYears;
+export default alphaAddedPensionRevaluationFactorByYears;

@@ -1,7 +1,7 @@
 import { TestRunner } from "https://cdn.jsdelivr.net/gh/bealesd/js-test@main/source/test-runner.js"
-import { TotalPension } from "../javascript/total-pension.js";
-import { RegularPension } from "../javascript/regular-pension.js";
-import { AddedPension } from "../javascript/added-pension.js";
+import { TotalPension } from "../scripts/total-pension.js";
+import { RegularPension } from "../scripts/regular-pension.js";
+import { AddedPension } from "../scripts/added-pension.js";
 
 const runner = TestRunner.getInstance();
 const { it, fit, describe, expect, spy } = runner;
@@ -27,7 +27,7 @@ describe("total-pension.js Unit Tests", () => {
         spy(RegularPension.prototype, "convertAccruedToAnnual").and.callFake(() => 6000);
         spy(RegularPension.prototype, "calculate").and.callFake(() => 12000);
         spy(AddedPension.prototype, "calculate").and.callFake(() => 2000);
-        spy(sut, "getEarlyReductionFactors").and.returnValue(0.9);
+        spy(sut, "getEarlyPaymentReductionFactors").and.returnValue(0.9);
 
         // Act
         const result = sut.calculate(memberData);

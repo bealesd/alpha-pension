@@ -1,5 +1,5 @@
-import { addedPensionByPeriodicalContributionFactors } from "./added_pension_contribution_factors.js";
-import addedPensionRevaluationFactorByYears from "./added_pension_revaluation_factors.js";
+import { alphaAddedPensionByPeriodicalContributionFactorsForNpa } from "./alpha-added-pension-by-periodical-contribution-factors-for-npa.js";
+import alphaAddedPensionRevaluationFactorByYears from "./alpha-added-pension-revaluation-factors-by-years.js";
 
 export class AddedPension {
     calculate(memberData) {
@@ -19,19 +19,21 @@ export class AddedPension {
         return totalAdded;
     }
 
-    getAddedPensionRevaluationFactorByYears = (age) => {
-        return addedPensionRevaluationFactorByYears[68 - age].factor;
+    getAddedPensionRevaluationFactorByYears = (age, npa=68) => {
+        // NPA is state pension age, which is currently set at 68
+        return alphaAddedPensionRevaluationFactorByYears[npa - age].factor;
     };
 
-    getAddedPensionByPeriodicalContributionFactors = (age, type) => {
-        let factor = addedPensionByPeriodicalContributionFactors[68][age][type];
+    getAddedPensionByPeriodicalContributionFactorsForNpa = (age, type, npa=68) => {
+        // NPA is state pension age, which is currently set at 68
+        const factor = alphaAddedPensionByPeriodicalContributionFactorsForNpa[npa][age][type];
         return factor;
     };
 
 
     calculateAddedPensionForYearForGivenAge = (totalContributionsForPeriod, currentAge, type) => {
         return Math.round(
-            totalContributionsForPeriod / (this.getAddedPensionByPeriodicalContributionFactors(currentAge, type) * this.getAddedPensionRevaluationFactorByYears(currentAge))
+            totalContributionsForPeriod / (this.getAddedPensionByPeriodicalContributionFactorsForNpa(currentAge, type) * this.getAddedPensionRevaluationFactorByYears(currentAge))
         );
     };
 }

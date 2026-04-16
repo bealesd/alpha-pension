@@ -1,0 +1,42 @@
+{
+  "short_name": "AlphaCalc",
+  "name": "Civil Service Alpha Pension Calculator",
+  "description": "Calculate your Civil Service Alpha pension projections.",
+  "icons": [
+    {
+      "src": "./assets/images/logo-48x48.png",
+      "type": "image/png",
+      "sizes": "48x48",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/images/logo-72x72.png",
+      "type": "image/png",
+      "sizes": "72x72",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/images/logo-196x96.png",
+      "type": "image/png",
+      "sizes": "96x96",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/images/logo-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/images/logo-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "theme_color": "#005ea5",
+  "orientation": "portrait-primary"
+}
