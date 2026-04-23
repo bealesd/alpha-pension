@@ -71,13 +71,13 @@
                     <span class="help-text">Yearly inflation.</span>
                 </div>
             </div>
+
+            <br>
+
+            <table id="tbl">
+                <tbody></tbody>
+            </table>
         </form>
-
-        <br>
-
-        <table id="tbl">
-            <tbody></tbody>
-        </table>
         <button id="add-added-pension-row">Add</button>
         <button id="reset-form" type="button">Reset Data</button>
 
@@ -85,25 +85,28 @@
     </div>
 
     <template id="added-pension-row">
-        <tr>
-            <td>
-                <select class="type">
-                    <option value="self">Self</option>
-                    <option value="dependants" selected>Dependants</option>
-                </select>
-            </td>
-            <td>
-                <select class="period">
-                    <option value="month">Month</option>
-                    <option value="year">Year</option>
-                </select>
-            </td>
-            <td>
-                <input class="added-pension-payment" placeholder="£" step="1" type="number" min="100" max="20000"
-                    data-step="100">
-            </td>
-        </tr>
-    </template>
+    <tr>
+        <td>
+            <select class="type">
+                <option value="self">Self</option>
+                <option value="dependants" selected>Dependants</option>
+            </select>
+        </td>
+        <td>
+            <select class="period">
+                <option value="month">Month</option>
+                <option value="year">Year</option>
+            </select>
+        </td>
+        <td>
+            <input class="added-pension-payment" placeholder="£" step="1" type="number" min="100" max="20000"
+                data-step="100">
+        </td>
+        <td>
+            <button type="button" class="remove-row" title="Remove row">✕</button>
+        </td>
+    </tr>
+</template>
 
     <script>
         if ('serviceWorker' in navigator) {

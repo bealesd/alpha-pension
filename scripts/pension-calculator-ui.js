@@ -19,7 +19,8 @@ const DOM_IDS = Object.freeze({
 const DOM_CLASSES = Object.freeze({
     type: 'type',
     period: 'period',
-    addedPensionPayment: 'added-pension-payment'
+    addedPensionPayment: 'added-pension-payment',
+    removeRow: 'remove-row'
 });
 
 class PensionCalculatorUI {
@@ -27,15 +28,11 @@ class PensionCalculatorUI {
 
     constructor() {
         this.form = document.getElementById(DOM_IDS.form);
-
-        // Added pension table
         this.tableBody = document.querySelector(`#${DOM_IDS.table} tbody`);
         this.rowTemplate = document.getElementById(DOM_IDS.rowTemplate);
-
         this.addRowButton = document.getElementById(DOM_IDS.addRowButton);
         this.resetButton = document.getElementById(DOM_IDS.resetButton);
 
-        // General pension inputs
         this.ageInput = document.getElementById(DOM_IDS.age);
         this.retirementAgeInput = document.getElementById(DOM_IDS.retirementAge);
         this.pensionStartAgeInput = document.getElementById(DOM_IDS.pensionStartAge);
@@ -44,90 +41,96 @@ class PensionCalculatorUI {
         this.accruedInput = document.getElementById(DOM_IDS.accrued);
         this.cpiInput = document.getElementById(DOM_IDS.cpi);
 
-        // Pension forecast
         this.pensionForecastElement = document.getElementById(DOM_IDS.pensionForecastValue);
 
         this.addEventListeners();
         this.updatePensionStartAgeConstraints();
-
         this.loadState();
-
         this.form.dispatchEvent(new Event("input", { bubbles: true }));
     }
 
     addEventListeners() {
-        document.addEventListener("input", (e) => {
-            // Update pension start age constraints when retirement age changes
-            if (e.target === this.retirementAgeInput) {
-                this.updatePensionStartAgeConstraints();
-                this.updateNpaConstraints();
-            }
-
-            if (e.target === this.pensionStartAgeInput)
-                this.updateNpaConstraints();
-
-            this.updatePensionForecast.call(this, e);
-        });
-
-        this.addRowButton.onclick = (e) => {
-            e.preventDefault();
-            this.tableBody.appendChild(this.rowTemplate.content.cloneNode(true));
-            e.target.dispatchEvent(new Event("input", { bubbles: true }));
-        };
-
-        this.resetButton.onclick = (e) => {
-            e.preventDefault();
-            this.resetData();
-            e.target.dispatchEvent(new Event("input", { bubbles: true }));
-        };
-
+        document.addEventListener("input", this.handleInput.bind(this));
         document.addEventListener("keydown", this.handleDataStepEvent.bind(this));
+        this.addRowButton.addEventListener("click", this.handleAddRow.bind(this));
+        this.resetButton.addEventListener("click", this.handleReset.bind(this));
+        this.tableBody.addEventListener("click", this.handleRemoveRow.bind(this));
+    }
+
+    handleInput(e) {
+        if (e.target === this.retirementAgeInput) {
+            this.updatePensionStartAgeConstraints();
+            this.updateNpaConstraints();
+        }
+
+        if (e.target === this.pensionStartAgeInput) {
+            this.updateNpaConstraints();
+        }
+
+        this.updatePensionForecast(e);
+    }
+
+    handleAddRow(e) {
+        e.preventDefault();
+        this.tableBody.appendChild(this.rowTemplate.content.cloneNode(true));
+        this.updatePensionForecast();
+    }
+
+    handleReset(e) {
+        e.preventDefault();
+        this.resetData();
+        this.updatePensionForecast();
+    }
+
+    handleRemoveRow(e) {
+        const removeButton = e.target.closest(`.${DOM_CLASSES.removeRow}`);
+        if (!removeButton) return;
+
+        removeButton.closest("tr").remove();
+        this.updatePensionForecast();
+    }
+
+    handleDataStepEvent(e) {
+        const { target, key } = e;
+
+        if (target.tagName !== "INPUT" || target.type !== "number" || !target.hasAttribute("data-step")) return;
+        if (key !== "ArrowUp" && key !== "ArrowDown") return;
+
+        e.preventDefault();
+
+        const step = parseFloat(target.getAttribute("data-step"));
+        const current = parseFloat(target.value) || 0;
+        target.value = key === "ArrowUp" ? current + step : current - step;
+
+        target.dispatchEvent(new Event("input", { bubbles: true }));
     }
 
     updatePensionStartAgeConstraints() {
         const retirementAge = +this.retirementAgeInput.value;
-        // Pension start age cannot be earlier than retirement age
         this.pensionStartAgeInput.min = retirementAge;
 
-        // If pension start age is now below retirement age, adjust it
-        if (+this.pensionStartAgeInput.value < retirementAge)
+        if (+this.pensionStartAgeInput.value < retirementAge) {
             this.pensionStartAgeInput.value = retirementAge;
+        }
     }
 
     updateNpaConstraints() {
-        // NPA cannot be earlier than pension start age
-        const pensionStartAge = this.pensionStartAgeInput.value;
+        const pensionStartAge = +this.pensionStartAgeInput.value;
         this.npaInput.min = pensionStartAge;
 
-        if (+this.npaInput.value < pensionStartAge)
+        if (+this.npaInput.value < pensionStartAge) {
             this.npaInput.value = pensionStartAge;
-    }
-
-    handleDataStepEvent(e) {
-        if (e.target.tagName === "INPUT" && e.target.type === "number" && e.target.hasAttribute("data-step")) {
-            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-                e.preventDefault(); // Stop the native step="1" behavior
-
-                const jumpAmount = parseFloat(e.target.getAttribute("data-step"));
-                const currentVal = parseFloat(e.target.value) || 0;
-
-                // Apply the jump
-                e.target.value = e.key === "ArrowUp" ? currentVal + jumpAmount : currentVal - jumpAmount;
-
-                e.target.dispatchEvent(new Event("input", { bubbles: true }));
-            }
         }
     }
 
     getRows() {
-        return [...this.tableBody.querySelectorAll("tr")].map(row => ({
-            type: row.querySelector(`.${DOM_CLASSES.type}`).value,
-            period: row.querySelector(`.${DOM_CLASSES.period}`).value,
-            addedPensionPayment: row.querySelector(`.${DOM_CLASSES.addedPensionPayment}`).value
-        })).filter(row => {
-            const payment = row.addedPensionPayment;
-            return payment !== "" && Number(payment) !== 0;
-        });
+        return [...this.tableBody.querySelectorAll("tr")]
+            .map(row => ({
+                type: row.querySelector(`.${DOM_CLASSES.type}`).value,
+                period: row.querySelector(`.${DOM_CLASSES.period}`).value,
+                addedPensionPayment: row.querySelector(`.${DOM_CLASSES.addedPensionPayment}`).value
+            }))
+            .filter(row => row.addedPensionPayment !== "" && Number(row.addedPensionPayment) !== 0);
     }
 
     loadState() {
@@ -137,29 +140,26 @@ class PensionCalculatorUI {
         try {
             const state = JSON.parse(savedData);
 
-            // Restore general inputs
-            if (state.age !== undefined) this.ageInput.value = state.age;
-            if (state.retirementAge !== undefined) this.retirementAgeInput.value = state.retirementAge;
-            if (state.pensionStartAge !== undefined) this.pensionStartAgeInput.value = state.pensionStartAge;
-            if (state.npa !== undefined) this.npaInput.value = state.npa;
-            if (state.salary !== undefined) this.salaryInput.value = state.salary;
-            if (state.accrued !== undefined) this.accruedInput.value = state.accrued;
-            if (state.cpi !== undefined) this.cpiInput.value = state.cpi;
+            this.ageInput.value = state.age ?? this.ageInput.value;
+            this.retirementAgeInput.value = state.retirementAge ?? this.retirementAgeInput.value;
+            this.pensionStartAgeInput.value = state.pensionStartAge ?? this.pensionStartAgeInput.value;
+            this.npaInput.value = state.npa ?? this.npaInput.value;
+            this.salaryInput.value = state.salary ?? this.salaryInput.value;
+            this.accruedInput.value = state.accrued ?? this.accruedInput.value;
+            this.cpiInput.value = state.cpi ?? this.cpiInput.value;
 
-            // Restore dynamic rows
-            if (state.rows && state.rows.length > 0) {
-                this.tableBody.innerHTML = ""; // Clear out any default HTML rows
+            if (state.rows?.length > 0) {
+                this.tableBody.innerHTML = "";
 
-                state.rows.forEach(rowData => {
+                for (const rowData of state.rows) {
                     const rowNode = this.rowTemplate.content.cloneNode(true);
                     rowNode.querySelector(`.${DOM_CLASSES.type}`).value = rowData.type || "";
                     rowNode.querySelector(`.${DOM_CLASSES.period}`).value = rowData.period || "";
                     rowNode.querySelector(`.${DOM_CLASSES.addedPensionPayment}`).value = rowData.addedPensionPayment || "";
                     this.tableBody.appendChild(rowNode);
-                });
+                }
             }
 
-            // Validate pension start age is not before retirement age
             this.updatePensionStartAgeConstraints();
             this.updateNpaConstraints();
         } catch (e) {
@@ -182,36 +182,24 @@ class PensionCalculatorUI {
     }
 
     resetData() {
-        // 1. Clear local storage
         localStorage.removeItem(this.STORAGE_KEY);
-
-        // 2. Reset form inputs back to their HTML default values
-        if (this.form) this.form.reset();
-
-        // 3. Clear all dynamic table rows
+        this.form?.reset();
         this.tableBody.innerHTML = "";
     }
 
     updatePensionForecast(event) {
-        // 1. If an input triggered this, check if it's valid.
-        // If not, show native tooltip and stop calculation.
-        if (event && event.target && event.target.tagName === "INPUT") {
-            if (!event.target.checkValidity()) {
-                event.target.reportValidity(); // Shows the native browser popup
-                return; // Stop calculation
-            }
+        if (event?.target?.tagName === "INPUT" && !event.target.checkValidity()) {
+            event.target.reportValidity();
+            return;
         }
 
-        // 2. Also check if the whole form is valid before saving/calculating
         if (this.form && !this.form.checkValidity()) {
             this.pensionForecastElement.textContent = "Error";
             return;
         }
 
-        // Save the current state to localStorage every time an update occurs
         this.saveState();
 
-        // Parse row values to numbers for the calculation
         const parsedRows = this.getRows().map(row => ({
             ...row,
             addedPensionPayment: +row.addedPensionPayment || 0
@@ -228,12 +216,12 @@ class PensionCalculatorUI {
             rows: parsedRows
         };
 
-        this.pensionForecastElement.textContent = (new TotalPension()).calculate(memberData).toFixed(0);
+        this.pensionForecastElement.textContent = new TotalPension().calculate(memberData).toFixed(0);
     }
 }
 
-// Instantiate the UI class when DOM is ready
-if (document.readyState === "loading")
+if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => new PensionCalculatorUI());
-else
+} else {
     new PensionCalculatorUI();
+}
