@@ -77,9 +77,6 @@ Contributions are welcome. Feel free to:
 
 Potential enhancements include:
 
-* UI improvements
-* Support for additional pension schemes
-* More detailed tax and inflation modelling
 * Exporting results
 
 ---

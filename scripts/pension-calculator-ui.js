@@ -13,7 +13,8 @@ const DOM_IDS = Object.freeze({
     rowTemplate: 'added-pension-row',
     addRowButton: 'add-added-pension-row',
     resetButton: 'reset-form',
-    pensionForecastValue: 'pension-forecast-value'
+    pensionForecastValue: 'pension-forecast-value',
+    themeToggle: 'theme-toggle'
 });
 
 const DOM_CLASSES = Object.freeze({
@@ -25,6 +26,7 @@ const DOM_CLASSES = Object.freeze({
 
 class PensionCalculatorUI {
     STORAGE_KEY = 'pensionCalculatorState';
+    THEME_KEY = 'pensionCalculatorTheme';
 
     constructor() {
         this.form = document.getElementById(DOM_IDS.form);
@@ -32,6 +34,7 @@ class PensionCalculatorUI {
         this.rowTemplate = document.getElementById(DOM_IDS.rowTemplate);
         this.addRowButton = document.getElementById(DOM_IDS.addRowButton);
         this.resetButton = document.getElementById(DOM_IDS.resetButton);
+        this.themeToggle = document.getElementById(DOM_IDS.themeToggle);
 
         this.ageInput = document.getElementById(DOM_IDS.age);
         this.retirementAgeInput = document.getElementById(DOM_IDS.retirementAge);
@@ -43,8 +46,9 @@ class PensionCalculatorUI {
 
         this.pensionForecastElement = document.getElementById(DOM_IDS.pensionForecastValue);
 
+        this.loadTheme();
         this.addEventListeners();
-        this.updatePensionStartAgeConstraints();
+        // this.updatePensionStartAgeConstraints();
         this.loadState();
         this.form.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -52,22 +56,65 @@ class PensionCalculatorUI {
     addEventListeners() {
         document.addEventListener("input", this.handleInput.bind(this));
         document.addEventListener("keydown", this.handleDataStepEvent.bind(this));
+        document.addEventListener("mousedown", this.handleStepperClick.bind(this));
+        document.addEventListener("mouseup", this.handleStepperRelease.bind(this));
+        document.addEventListener("wheel", this.handleWheel.bind(this), { passive: false });
         this.addRowButton.addEventListener("click", this.handleAddRow.bind(this));
         this.resetButton.addEventListener("click", this.handleReset.bind(this));
         this.tableBody.addEventListener("click", this.handleRemoveRow.bind(this));
+        this.themeToggle.addEventListener("click", this.handleThemeToggle.bind(this));
     }
 
-    handleInput(e) {
-        if (e.target === this.retirementAgeInput) {
-            this.updatePensionStartAgeConstraints();
-            this.updateNpaConstraints();
-        }
+    // === Theme ===
 
-        if (e.target === this.pensionStartAgeInput) {
-            this.updateNpaConstraints();
+    loadTheme() {
+        const saved = localStorage.getItem(this.THEME_KEY);
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = saved ?? (prefersDark ? "dark" : "light");
+
+        document.documentElement.setAttribute("data-theme", theme);
+    }
+
+    handleThemeToggle() {
+        const current = document.documentElement.getAttribute("data-theme");
+        const next = current === "dark" ? "light" : "dark";
+
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem(this.THEME_KEY, next);
+    }
+
+    // === Event Handlers ===
+
+    handleInput(e) {
+        if (e.target === this.retirementAgeInput || e.target === this.pensionStartAgeInput || e.target === this.npaInput) {
+            this.updateAgeConstraints(e.target);
         }
 
         this.updatePensionForecast(e);
+    }
+
+    updateAgeConstraints(target) {
+        let retirementAge = +this.retirementAgeInput.value;
+        let pensionStartAge = +this.pensionStartAgeInput.value;
+        let npa = +this.npaInput.value;
+
+        if (target === this.retirementAgeInput) {
+            pensionStartAge = Math.max(pensionStartAge, retirementAge);
+            npa = Math.max(npa, Math.min(68, pensionStartAge));
+        } else if (target === this.npaInput) {
+            pensionStartAge = Math.min(pensionStartAge, npa);
+            retirementAge = Math.min(retirementAge, pensionStartAge);
+        } else if (target === this.pensionStartAgeInput) {
+            retirementAge = Math.min(retirementAge, pensionStartAge);
+            npa = Math.max(npa, Math.min(68, pensionStartAge));
+        }
+
+        // Final safety: retirement ≤ pensionStart ≤ NPA
+        pensionStartAge = Math.max(retirementAge, Math.min(npa, pensionStartAge));
+
+        this.retirementAgeInput.value = retirementAge;
+        this.pensionStartAgeInput.value = pensionStartAge;
+        this.npaInput.value = npa;
     }
 
     handleAddRow(e) {
@@ -105,23 +152,58 @@ class PensionCalculatorUI {
         target.dispatchEvent(new Event("input", { bubbles: true }));
     }
 
-    updatePensionStartAgeConstraints() {
-        const retirementAge = +this.retirementAgeInput.value;
-        this.pensionStartAgeInput.min = retirementAge;
-
-        if (+this.pensionStartAgeInput.value < retirementAge) {
-            this.pensionStartAgeInput.value = retirementAge;
-        }
+    handleStepperClick(e) {
+        if (e.target.tagName !== "INPUT" || e.target.type !== "number" || !e.target.hasAttribute("data-step")) return;
+        e.target.step = e.target.getAttribute("data-step");
     }
 
-    updateNpaConstraints() {
-        const pensionStartAge = +this.pensionStartAgeInput.value;
-        this.npaInput.min = pensionStartAge;
-
-        if (+this.npaInput.value < pensionStartAge) {
-            this.npaInput.value = pensionStartAge;
-        }
+    handleStepperRelease(e) {
+        if (e.target.tagName !== "INPUT" || e.target.type !== "number" || !e.target.hasAttribute("data-step")) return;
+        e.target.step = "any";
     }
+
+    handleWheel(e) {
+        const { target } = e;
+
+        if (target.tagName !== "INPUT" || target.type !== "number" || !target.hasAttribute("data-step")) return;
+        if (document.activeElement !== target) return;
+
+        e.preventDefault();
+
+        const step = parseFloat(target.getAttribute("data-step"));
+        const current = parseFloat(target.value) || 0;
+        target.value = e.deltaY < 0 ? current + step : current - step;
+
+        target.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    // === Constraints ===
+
+    // updatePensionStartAgeConstraints() {
+    //     const retirementAge = +this.retirementAgeInput.value;
+    //     const npa = +this.npaInput.value;
+
+    //     this.pensionStartAgeInput.min = retirementAge;
+    //     this.pensionStartAgeInput.max = npa;
+
+    //     const current = +this.pensionStartAgeInput.value;
+    //     if (current < retirementAge) this.pensionStartAgeInput.value = retirementAge;
+    //     if (current > npa) this.pensionStartAgeInput.value = npa;
+    // }
+
+    // updateNpaConstraints() {
+    //     const pensionStartAge = +this.pensionStartAgeInput.value;
+    //     this.npaInput.min = pensionStartAge;
+
+    //     const npaValue = +this.npaInput.value;
+    //     if (npaValue < pensionStartAge)
+    //         this.npaInput.value = pensionStartAge;
+
+    //     if (npaValue < 65) this.npaInput.value = 65;
+    //     if (npaValue > 68) this.npaInput.value = 68;
+    // }
+
+    // === Data ===
 
     getRows() {
         return [...this.tableBody.querySelectorAll("tr")]
@@ -160,8 +242,8 @@ class PensionCalculatorUI {
                 }
             }
 
-            this.updatePensionStartAgeConstraints();
-            this.updateNpaConstraints();
+            // this.updatePensionStartAgeConstraints();
+            // this.updateNpaConstraints();
         } catch (e) {
             console.error("Failed to load pension calculator state from localStorage", e);
         }
