@@ -31,9 +31,9 @@ export class AddedPension {
     };
 
 
-    calculateAddedPensionForYearForGivenAge = (totalContributionsForPeriod, currentAge, type) => {
+    calculateAddedPensionForYearForGivenAge = (totalContributionsForPeriod, currentAge, type, npa = 68) => {
         return Math.round(
-            totalContributionsForPeriod / (this.getAddedPensionByPeriodicalContributionFactorsForNpa(currentAge, type) * this.getAddedPensionRevaluationFactorByYears(currentAge))
+            totalContributionsForPeriod / (this.getAddedPensionByPeriodicalContributionFactorsForNpa(currentAge, type, npa) * this.getAddedPensionRevaluationFactorByYears(currentAge, npa))
         );
     };
 }

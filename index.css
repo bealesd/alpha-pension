@@ -127,9 +127,28 @@ label {
     color: var(--color-primary-hover);
 }
 
-.github-link svg {
+..github-link svg {
     width: 24px;
     height: 24px;
+}
+
+.secondary-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: var(--color-primary);
+    text-decoration: none;
+    background: var(--color-bg);
+    transition: all 0.2s;
+    font-size: 0.95rem;
+}
+
+.secondary-link:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--color-primary-hover);
 }
 
 form {
