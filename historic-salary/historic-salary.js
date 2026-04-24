@@ -5,56 +5,62 @@ const CONTRIBUTION_RATE = 0.0232;
 
 class HistoricSalaryUI {
     constructor() {
-        this.salaryTableBody = document.querySelector('#salary-table tbody');
-        this.addedTableBody = document.querySelector('#added-table tbody');
-        this.breakdownBody = document.querySelector('#breakdown-table tbody');
-        this.addSalaryRowButton = document.getElementById('add-salary-row');
-        this.addAddedRowButton = document.getElementById('add-added-row');
-        this.totalSalary = document.getElementById('total-salary');
-        this.totalAdded = document.getElementById('total-added');
-        this.totalSalaryPension = document.getElementById('total-salary-pension');
-        this.totalAddedPension = document.getElementById('total-added-pension');
-        this.totalCombined = document.getElementById('total-combined');
-
-        this.currentYearInput = document.getElementById('current-year');
-        this.yearOfBirthInput = document.getElementById('year-of-birth');
-        this.npaInput = document.getElementById('npa');
-
+        this.cacheElements();
         this.addedPension = new AddedPension();
-
-        this.addSalaryRowButton.addEventListener('click', this.handleAddSalaryRow.bind(this));
-        this.addAddedRowButton.addEventListener('click', this.handleAddAddedRow.bind(this));
-        this.salaryTableBody.addEventListener('input', this.handleInput.bind(this));
-        this.salaryTableBody.addEventListener('click', this.handleRemoveRow.bind(this));
-        this.addedTableBody.addEventListener('input', this.handleInput.bind(this));
-        this.addedTableBody.addEventListener('click', this.handleRemoveRow.bind(this));
-
-        this.currentYearInput.addEventListener('input', this.handleInput.bind(this));
-        this.yearOfBirthInput.addEventListener('input', this.handleInput.bind(this));
-        this.monthOfBirthInput = document.getElementById('month-of-birth');
-        this.monthOfBirthInput.addEventListener('input', this.handleInput.bind(this));
-        this.npaInput.addEventListener('input', this.handleInput.bind(this));
-
+        this.initEventListeners();
+        
+        // Load existing data if available
         this.loadState();
-        if (this.salaryTableBody.children.length === 0) {
-            this.addSalaryRow({ year: new Date().getFullYear() - 2, salary: 30000 });
-            this.addSalaryRow({ year: new Date().getFullYear() - 1, salary: 35000 });
-            this.addSalaryRow({ year: new Date().getFullYear(), salary: 38000 });
-        }
+
+        // Calculate initial totals/render based on loaded state
         this.update();
     }
 
-    handleAddSalaryRow(event) {
-        event.preventDefault();
-        this.addSalaryRow({ year: new Date().getFullYear(), salary: 0 });
-        this.update();
+    cacheElements() {
+        const query = (selector) => document.querySelector(selector);
+        this.salaryTableBody = query('#salary-table tbody');
+        this.addedTableBody = query('#added-table tbody');
+        this.breakdownBody = query('#breakdown-table tbody');
+        
+        this.addSalaryRowButton = query('#add-salary-row');
+        this.addAddedRowButton = query('#add-added-row');
+        
+        this.totalSalary = query('#total-salary');
+        this.totalAdded = query('#total-added');
+        this.totalSalaryPension = query('#total-salary-pension');
+        this.totalAddedPension = query('#total-added-pension');
+        this.totalCombined = query('#total-combined');
+
+        this.currentYearInput = query('#current-year');
+        this.yearOfBirthInput = query('#year-of-birth');
+        this.monthOfBirthInput = query('#month-of-birth');
+        this.npaInput = query('#npa');
     }
 
-    handleAddAddedRow(event) {
-        event.preventDefault();
-        this.addAddedRow({ year: new Date().getFullYear(), type: 'self', period: 'year', added: 0 });
-        this.update();
+    initEventListeners() {
+        this.addSalaryRowButton.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            this.addSalaryRow({ year: new Date().getFullYear(), salary: 0 }); 
+            this.update(); 
+        });
+
+        this.addAddedRowButton.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            this.addAddedRow({ year: new Date().getFullYear(), type: 'self', period: 'year', added: 0 }); 
+            this.update(); 
+        });
+        
+        [this.salaryTableBody, this.addedTableBody].forEach(body => {
+            body.addEventListener('input', () => this.update());
+            body.addEventListener('click', (e) => this.handleRemoveRow(e));
+        });
+
+        [this.currentYearInput, this.yearOfBirthInput, this.monthOfBirthInput, this.npaInput].forEach(input => {
+            input?.addEventListener('input', () => this.update());
+        });
     }
+
+    // --- Row Handling ---
 
     handleRemoveRow(event) {
         if (!event.target.classList.contains('remove-row')) return;
@@ -62,100 +68,41 @@ class HistoricSalaryUI {
         this.update();
     }
 
-    handleInput() {
-        this.update();
-    }
-
     addSalaryRow(data) {
-        const template = document.getElementById('salary-row');
-        const row = template.content.cloneNode(true);
-        const tr = row.querySelector('tr');
-
-        tr.querySelector('.year').value = data.year;
-        tr.querySelector('.salary').value = data.salary;
-
-        this.salaryTableBody.appendChild(tr);
+        const row = document.getElementById('salary-row').content.cloneNode(true).querySelector('tr');
+        row.querySelector('.year').value = data.year;
+        row.querySelector('.salary').value = data.salary;
+        this.salaryTableBody.appendChild(row);
     }
 
     addAddedRow(data) {
-        const template = document.getElementById('added-row');
-        const row = template.content.cloneNode(true);
-        const tr = row.querySelector('tr');
-
-        tr.querySelector('.year').value = data.year;
-        tr.querySelector('.type').value = data.type;
-        tr.querySelector('.period').value = data.period;
-        tr.querySelector('.added').value = data.added;
-
-        this.addedTableBody.appendChild(tr);
+        const row = document.getElementById('added-row').content.cloneNode(true).querySelector('tr');
+        row.querySelector('.year').value = data.year;
+        row.querySelector('.type').value = data.type;
+        row.querySelector('.period').value = data.period;
+        row.querySelector('.added').value = data.added;
+        this.addedTableBody.appendChild(row);
     }
 
-    getSalaryRows() {
-        return [...this.salaryTableBody.querySelectorAll('tr')]
-            .map(row => ({
-                year: Number(row.querySelector('.year').value) || 0,
-                salary: Number(row.querySelector('.salary').value) || 0
-            }))
-            .filter(row => row.year > 0)
-            .sort((a, b) => a.year - b.year);
-    }
+    // --- Age Logic ---
 
-    getAddedRows() {
-        return [...this.addedTableBody.querySelectorAll('tr')]
-            .map(row => {
-                const period = row.querySelector('.period').value;
-                const added = Number(row.querySelector('.added').value) || 0;
-
-                return {
-                    year: Number(row.querySelector('.year').value) || 0,
-                    type: row.querySelector('.type').value,
-                    period,
-                    added,
-                    annualAdded: period === 'month' ? added * 12 : added
-                };
-            })
-            .filter(row => row.year > 0)
-            .sort((a, b) => a.year - b.year);
-    }
-
-    getSettings() {
-        const currentYear = Number(this.currentYearInput.value) || new Date().getFullYear();
-        const yearOfBirth = Number(this.yearOfBirthInput.value) || 1986;
-        const monthOfBirth = Number(this.monthOfBirthInput?.value) || 1;
-        return {
-            currentYear,
-            yearOfBirth,
-            monthOfBirth,
-            npa: Number(this.npaInput.value) || 68
-        };
-    }
-
-    // Note: Ensure your environment supports Temporal or use a polyfill
     getDecimalAgeTemporal(dobMonth, dobYear, financialYearStartYear) {
-        // 1. Create Temporal.PlainDate objects
+        // Precise calculation for April 1st of the financial year
         const birthDate = Temporal.PlainDate.from({ year: dobYear, month: dobMonth, day: 1 });
         const referenceDate = Temporal.PlainDate.from({ year: financialYearStartYear, month: 4, day: 1 });
-
-        // 2. Calculate the duration between the two dates
         const duration = referenceDate.since(birthDate);
-
-        // 3. Get the total duration in years as a decimal
-        // 'relativeTo' is crucial here as it tells Temporal exactly 
-        // which years/months to count (handling leap years automatically)
-        const decimalAge = duration.total({ unit: 'year', relativeTo: birthDate });
-
-        return parseFloat(decimalAge.toFixed(4));
+        return parseFloat(duration.total({ unit: 'year', relativeTo: birthDate }).toFixed(4));
     }
 
-    estimateSalaryPension(row) {
-        return row.salary * CONTRIBUTION_RATE;
-    }
+    // --- Calculations ---
 
-    estimateAddedPension(row, settings) {
-        // Use decimal age for interpolation
-        // const decimalAge = this.getDecimalAgeForAddedPension(row, settings);
-        const decimalAge = this.getDecimalAgeTemporal(settings.monthOfBirth, settings.yearOfBirth, row.year);
-        return this.addedPension.calculateAddedPensionForYearForGivenAge(row.annualAdded, decimalAge, row.type, settings.npa);
+    getSettings() {
+        return {
+            currentYear: Number(this.currentYearInput.value) || new Date().getFullYear(),
+            yearOfBirth: Number(this.yearOfBirthInput.value) || 1986,
+            monthOfBirth: Number(this.monthOfBirthInput?.value) || 1,
+            npa: Number(this.npaInput.value) || 68
+        };
     }
 
     update() {
@@ -163,78 +110,69 @@ class HistoricSalaryUI {
         const salaryRows = this.getSalaryRows();
         const addedRows = this.getAddedRows();
 
-        // Group added by year
-        const addedByYear = {};
-        addedRows.forEach(row => {
-            if (!addedByYear[row.year]) addedByYear[row.year] = [];
-            addedByYear[row.year].push(row);
-        });
+        // Group added pensions by year
+        const addedByYear = addedRows.reduce((acc, row) => {
+            if (!acc[row.year]) acc[row.year] = [];
+            acc[row.year].push(row);
+            return acc;
+        }, {});
 
-        const totalSalary = salaryRows.reduce((sum, row) => sum + row.salary, 0);
-        const totalAdded = addedRows.reduce((sum, row) => sum + row.annualAdded, 0);
+        // Unique set of all years to iterate once
+        const allYears = [...new Set([
+            ...salaryRows.map(r => r.year),
+            ...Object.keys(addedByYear).map(Number)
+        ])].sort((a, b) => a - b);
 
-        let salaryPension = 0;
-        let addedPensionValue = 0;
+        let totalSalaryValue = 0;
+        let totalAddedValue = 0;
+        let totalSalaryPensionValue = 0;
+        let totalAddedPensionValue = 0;
 
-        const detailedRows = salaryRows.map(salaryRow => {
-            const age = this.getDecimalAgeTemporal(settings.monthOfBirth, settings.yearOfBirth, salaryRow.year);
-            const salaryValue = this.estimateSalaryPension(salaryRow);
-            const addedForYear = addedByYear[salaryRow.year] || [];
-            const addedValue = addedForYear.reduce((sum, addedRow) => sum + this.estimateAddedPension(addedRow, settings), 0);
-            salaryPension += salaryValue;
-            addedPensionValue += addedValue;
-            return {
-                year: salaryRow.year,
-                age,
-                salary: salaryRow.salary,
-                added: addedForYear.reduce((sum, row) => sum + row.annualAdded, 0),
-                salaryPension: salaryValue,
-                addedPension: addedValue,
-                totalValue: salaryValue + addedValue
-            };
-        });
+        const detailedRows = [];
 
-        // Handle years with added but no salary
-        for (const [yearStr, yearData] of Object.entries(addedByYear)) {
-            const year = Number(yearStr);
+        for (const year of allYears) {
+            const salaryRow = salaryRows.find(r => r.year === year);
+            const addedItems = addedByYear[year] || [];
+            
+            const age = this.getDecimalAgeTemporal(settings.monthOfBirth, settings.yearOfBirth, year);
+            
+            // Salary calculation
+            const salary = salaryRow ? salaryRow.salary : 0;
+            const salaryPension = salary * CONTRIBUTION_RATE;
 
-            // Skip if the year is already represented in salaryRows
-            if (!salaryRows.find(r => r.year === year)) {
+            // Added pension calculation
+            let annualAddedTotal = 0;
+            let addedPensionValue = 0;
 
-                const age = this.getDecimalAgeTemporal(
-                    settings.monthOfBirth,
-                    settings.yearOfBirth,
-                    year
+            for (const item of addedItems) {
+                annualAddedTotal += item.annualAdded;
+                addedPensionValue += this.addedPension.calculateAddedPensionForYearForGivenAge(
+                    item.annualAdded, age, item.type, settings.npa
                 );
-
-                const addedValue = yearData.reduce(
-                    (sum, addedRow) => sum + this.estimateAddedPension(addedRow, settings),
-                    0
-                );
-
-                addedPensionValue += addedValue;
-
-                detailedRows.push({
-                    year,
-                    age,
-                    salary: 0,
-                    added: yearData.reduce((sum, row) => sum + row.annualAdded, 0),
-                    salaryPension: 0,
-                    addedPension: addedValue,
-                    totalValue: addedValue
-                });
             }
+
+            totalSalaryValue += salary;
+            totalAddedValue += annualAddedTotal;
+            totalSalaryPensionValue += salaryPension;
+            totalAddedPensionValue += addedPensionValue;
+
+            detailedRows.push({
+                year,
+                age,
+                salary,
+                added: annualAddedTotal,
+                salaryPension,
+                addedPension: addedPensionValue,
+                totalValue: salaryPension + addedPensionValue
+            });
         }
 
-        detailedRows.sort((a, b) => a.year - b.year);
-
-        const combinedPension = salaryPension + addedPensionValue;
-
-        this.totalSalary.textContent = this.formatCurrency(totalSalary);
-        this.totalAdded.textContent = this.formatCurrency(totalAdded);
-        this.totalSalaryPension.textContent = this.formatCurrency(salaryPension);
-        this.totalAddedPension.textContent = this.formatCurrency(addedPensionValue);
-        this.totalCombined.textContent = this.formatCurrency(combinedPension);
+        // UI Updates
+        this.totalSalary.textContent = this.formatCurrency(totalSalaryValue);
+        this.totalAdded.textContent = this.formatCurrency(totalAddedValue);
+        this.totalSalaryPension.textContent = this.formatCurrency(totalSalaryPensionValue);
+        this.totalAddedPension.textContent = this.formatCurrency(totalAddedPensionValue);
+        this.totalCombined.textContent = this.formatCurrency(totalSalaryPensionValue + totalAddedPensionValue);
 
         this.renderBreakdown(detailedRows);
         this.saveState(salaryRows, addedRows, settings);
@@ -246,13 +184,12 @@ class HistoricSalaryUI {
 
         for (const row of rows) {
             const change = previousTotal ? row.totalValue - previousTotal : 0;
+            const pensionYear = `${row.year}/${(row.year + 1).toString().slice(-2)}`;
+            
             const tr = document.createElement('tr');
-            // Show pension year format (2024/25 for year 2024)
-            const nextYear = row.year + 1;
-            const pensionYear = `${row.year}/${nextYear.toString().slice(-2)}`;
             tr.innerHTML = `
                 <td>${pensionYear}</td>
-                <td>${row.age}</td>
+                <td>${row.age.toFixed(2)}</td>
                 <td>${this.formatCurrency(row.salary)}</td>
                 <td>${this.formatCurrency(row.added)}</td>
                 <td>${this.formatCurrency(row.salaryPension)}</td>
@@ -265,47 +202,61 @@ class HistoricSalaryUI {
         }
     }
 
-    formatCurrency(value) {
-        return new Intl.NumberFormat('en-GB', {
-            style: 'currency',
-            currency: 'GBP',
-            maximumFractionDigits: 0
-        }).format(value);
+    // --- Helpers ---
+
+    getSalaryRows() {
+        return [...this.salaryTableBody.querySelectorAll('tr')].map(row => ({
+            year: Number(row.querySelector('.year').value) || 0,
+            salary: Number(row.querySelector('.salary').value) || 0
+        })).filter(r => r.year > 0);
     }
 
-    formatSigned(value) {
-        const sign = value > 0 ? '+' : '';
-        return `${sign}${this.formatCurrency(value)}`;
+    getAddedRows() {
+        return [...this.addedTableBody.querySelectorAll('tr')].map(row => {
+            const period = row.querySelector('.period').value;
+            const added = Number(row.querySelector('.added').value) || 0;
+            return {
+                year: Number(row.querySelector('.year').value) || 0,
+                type: row.querySelector('.type').value,
+                period,
+                annualAdded: period === 'month' ? added * 12 : added
+            };
+        }).filter(r => r.year > 0);
     }
 
-    saveState(salaryRows, addedRows, settings) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ salaryRows, addedRows, settings }));
+    formatCurrency(v) { 
+        return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(v); 
+    }
+
+    formatSigned(v) { 
+        return (v > 0 ? '+' : '') + this.formatCurrency(v); 
+    }
+
+    saveState(salaryRows, addedRows, settings) { 
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ salaryRows, addedRows, settings })); 
     }
 
     loadState() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (!saved) return;
-
         try {
-            const state = JSON.parse(saved);
-            if (state.settings) {
-                this.currentYearInput.value = state.settings.currentYear ?? this.currentYearInput.value;
-                this.yearOfBirthInput.value = state.settings.yearOfBirth ?? this.yearOfBirthInput.value;
-                this.npaInput.value = state.settings.npa ?? this.npaInput.value;
-                if (this.monthOfBirthInput && state.settings.monthOfBirth) {
-                    this.monthOfBirthInput.value = state.settings.monthOfBirth;
-                }
+            const { salaryRows, addedRows, settings } = JSON.parse(saved);
+            if (settings) {
+                this.currentYearInput.value = settings.currentYear;
+                this.yearOfBirthInput.value = settings.yearOfBirth;
+                this.npaInput.value = settings.npa;
+                if (this.monthOfBirthInput) this.monthOfBirthInput.value = settings.monthOfBirth;
             }
-            if (Array.isArray(state.salaryRows)) {
-                this.salaryTableBody.innerHTML = '';
-                state.salaryRows.forEach(row => this.addSalaryRow(row));
+            if (salaryRows) { 
+                this.salaryTableBody.innerHTML = ''; 
+                salaryRows.forEach(r => this.addSalaryRow(r)); 
             }
-            if (Array.isArray(state.addedRows)) {
-                this.addedTableBody.innerHTML = '';
-                state.addedRows.forEach(row => this.addAddedRow(row));
+            if (addedRows) { 
+                this.addedTableBody.innerHTML = ''; 
+                addedRows.forEach(r => this.addAddedRow(r)); 
             }
-        } catch (error) {
-            console.warn('Failed to load historic salary state', error);
+        } catch (e) { 
+            console.warn('Load failed', e); 
         }
     }
 }
