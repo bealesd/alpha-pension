@@ -31,6 +31,8 @@ class HistoricSalaryUI {
 
         this.currentYearInput.addEventListener('input', this.handleInput.bind(this));
         this.yearOfBirthInput.addEventListener('input', this.handleInput.bind(this));
+        this.monthOfBirthInput = document.getElementById('month-of-birth');
+        this.monthOfBirthInput.addEventListener('input', this.handleInput.bind(this));
         this.npaInput.addEventListener('input', this.handleInput.bind(this));
 
         this.loadState();
@@ -119,24 +121,41 @@ class HistoricSalaryUI {
     getSettings() {
         const currentYear = Number(this.currentYearInput.value) || new Date().getFullYear();
         const yearOfBirth = Number(this.yearOfBirthInput.value) || 1986;
+        const monthOfBirth = Number(this.monthOfBirthInput?.value) || 1;
         return {
             currentYear,
             yearOfBirth,
-            currentAge: currentYear - yearOfBirth,
+            monthOfBirth,
             npa: Number(this.npaInput.value) || 68
         };
     }
 
-    getAgeForRow(row, settings) {
-        return settings.currentAge - (settings.currentYear - row.year);
+    // Note: Ensure your environment supports Temporal or use a polyfill
+    getDecimalAgeTemporal(dobMonth, dobYear, financialYearStartYear) {
+        // 1. Create Temporal.PlainDate objects
+        const birthDate = Temporal.PlainDate.from({ year: dobYear, month: dobMonth, day: 1 });
+        const referenceDate = Temporal.PlainDate.from({ year: financialYearStartYear, month: 4, day: 1 });
+
+        // 2. Calculate the duration between the two dates
+        const duration = referenceDate.since(birthDate);
+
+        // 3. Get the total duration in years as a decimal
+        // 'relativeTo' is crucial here as it tells Temporal exactly 
+        // which years/months to count (handling leap years automatically)
+        const decimalAge = duration.total({ unit: 'year', relativeTo: birthDate });
+
+        return parseFloat(decimalAge.toFixed(4));
     }
 
-    estimateSalaryPension(row, settings, age) {
+    estimateSalaryPension(row) {
         return row.salary * CONTRIBUTION_RATE;
     }
 
-    estimateAddedPension(row, settings, age) {
-        return this.addedPension.calculateAddedPensionForYearForGivenAge(row.annualAdded, age, row.type, settings.npa);
+    estimateAddedPension(row, settings) {
+        // Use decimal age for interpolation
+        // const decimalAge = this.getDecimalAgeForAddedPension(row, settings);
+        const decimalAge = this.getDecimalAgeTemporal(settings.monthOfBirth, settings.yearOfBirth, row.year);
+        return this.addedPension.calculateAddedPensionForYearForGivenAge(row.annualAdded, decimalAge, row.type, settings.npa);
     }
 
     update() {
@@ -158,10 +177,10 @@ class HistoricSalaryUI {
         let addedPensionValue = 0;
 
         const detailedRows = salaryRows.map(salaryRow => {
-            const age = this.getAgeForRow(salaryRow, settings);
-            const salaryValue = this.estimateSalaryPension(salaryRow, settings, age);
+            const age = this.getDecimalAgeTemporal(settings.monthOfBirth, settings.yearOfBirth, salaryRow.year);
+            const salaryValue = this.estimateSalaryPension(salaryRow);
             const addedForYear = addedByYear[salaryRow.year] || [];
-            const addedValue = addedForYear.reduce((sum, addedRow) => sum + this.estimateAddedPension(addedRow, settings, age), 0);
+            const addedValue = addedForYear.reduce((sum, addedRow) => sum + this.estimateAddedPension(addedRow, settings), 0);
             salaryPension += salaryValue;
             addedPensionValue += addedValue;
             return {
@@ -176,23 +195,36 @@ class HistoricSalaryUI {
         });
 
         // Handle years with added but no salary
-        Object.keys(addedByYear).forEach(yearStr => {
+        for (const [yearStr, yearData] of Object.entries(addedByYear)) {
             const year = Number(yearStr);
+
+            // Skip if the year is already represented in salaryRows
             if (!salaryRows.find(r => r.year === year)) {
-                const age = this.getAgeForRow({ year }, settings);
-                const addedValue = addedByYear[year].reduce((sum, addedRow) => sum + this.estimateAddedPension(addedRow, settings, age), 0);
+
+                const age = this.getDecimalAgeTemporal(
+                    settings.monthOfBirth,
+                    settings.yearOfBirth,
+                    year
+                );
+
+                const addedValue = yearData.reduce(
+                    (sum, addedRow) => sum + this.estimateAddedPension(addedRow, settings),
+                    0
+                );
+
                 addedPensionValue += addedValue;
+
                 detailedRows.push({
                     year,
                     age,
                     salary: 0,
-                    added: addedByYear[year].reduce((sum, row) => sum + row.annualAdded, 0),
+                    added: yearData.reduce((sum, row) => sum + row.annualAdded, 0),
                     salaryPension: 0,
                     addedPension: addedValue,
                     totalValue: addedValue
                 });
             }
-        });
+        }
 
         detailedRows.sort((a, b) => a.year - b.year);
 
@@ -215,8 +247,11 @@ class HistoricSalaryUI {
         for (const row of rows) {
             const change = previousTotal ? row.totalValue - previousTotal : 0;
             const tr = document.createElement('tr');
+            // Show pension year format (2024/25 for year 2024)
+            const nextYear = row.year + 1;
+            const pensionYear = `${row.year}/${nextYear.toString().slice(-2)}`;
             tr.innerHTML = `
-                <td>${row.year}</td>
+                <td>${pensionYear}</td>
                 <td>${row.age}</td>
                 <td>${this.formatCurrency(row.salary)}</td>
                 <td>${this.formatCurrency(row.added)}</td>
@@ -257,6 +292,9 @@ class HistoricSalaryUI {
                 this.currentYearInput.value = state.settings.currentYear ?? this.currentYearInput.value;
                 this.yearOfBirthInput.value = state.settings.yearOfBirth ?? this.yearOfBirthInput.value;
                 this.npaInput.value = state.settings.npa ?? this.npaInput.value;
+                if (this.monthOfBirthInput && state.settings.monthOfBirth) {
+                    this.monthOfBirthInput.value = state.settings.monthOfBirth;
+                }
             }
             if (Array.isArray(state.salaryRows)) {
                 this.salaryTableBody.innerHTML = '';

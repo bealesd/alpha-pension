@@ -30,10 +30,44 @@ export class AddedPension {
         return factor;
     };
 
+    // Interpolate periodical factor for decimal ages
+    getInterpolatedPeriodicalFactor(age, type, npa = 68) {
+        const floorAge = Math.floor(age);
+        const ceilAge = Math.ceil(age);
+        
+        if (floorAge === ceilAge || floorAge < 16 || ceilAge > 75) {
+            return this.getAddedPensionByPeriodicalContributionFactorsForNpa(floorAge, type, npa);
+        }
+        
+        const factorFloor = this.getAddedPensionByPeriodicalContributionFactorsForNpa(floorAge, type, npa);
+        const factorCeil = this.getAddedPensionByPeriodicalContributionFactorsForNpa(ceilAge, type, npa);
+        
+        const fraction = age - floorAge;
+        return factorFloor + (factorCeil - factorFloor) * fraction;
+    }
+
+    // Interpolate revaluation factor for decimal ages
+    getInterpolatedRevaluationFactor(age, npa = 68) {
+        const floorAge = Math.floor(age);
+        const ceilAge = Math.ceil(age);
+        
+        if (floorAge === ceilAge) {
+            return this.getAddedPensionRevaluationFactorByYears(floorAge, npa);
+        }
+        
+        const factorFloor = this.getAddedPensionRevaluationFactorByYears(floorAge, npa);
+        const factorCeil = this.getAddedPensionRevaluationFactorByYears(ceilAge, npa);
+        
+        const fraction = age - floorAge;
+        return factorFloor + (factorCeil - factorFloor) * fraction;
+    }
 
     calculateAddedPensionForYearForGivenAge = (totalContributionsForPeriod, currentAge, type, npa = 68) => {
+        const periodicalFactor = this.getInterpolatedPeriodicalFactor(currentAge, type, npa);
+        const revaluationFactor = this.getInterpolatedRevaluationFactor(currentAge, npa);
+        
         return Math.round(
-            totalContributionsForPeriod / (this.getAddedPensionByPeriodicalContributionFactorsForNpa(currentAge, type, npa) * this.getAddedPensionRevaluationFactorByYears(currentAge, npa))
+            totalContributionsForPeriod / (periodicalFactor * revaluationFactor)
         );
     };
 }
