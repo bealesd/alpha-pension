@@ -1,17 +1,21 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historic Salary Pension Explorer</title>
     <link rel="stylesheet" href="./style.css">
 </head>
+
 <body>
     <div class="container">
         <header class="header">
             <div>
                 <h1>Historic Salary Pension Explorer</h1>
-                <p class="intro">Enter annual salary history and added pension contributions for each year. Added pension period (year/month) applies only to added contributions. You can add multiple added pension entries for the same year.</p>
+                <p class="intro">Enter annual salary history and added pension contributions for each year. Added
+                    pension period (year/month) applies only to added contributions. You can add multiple added pension
+                    entries for the same year.</p>
             </div>
             <div class="header-actions">
                 <a href="../index.html" class="button secondary">Main calculator</a>
@@ -28,12 +32,8 @@
                     <input type="number" id="current-year" value="2026" min="1900" max="2100">
                 </div>
                 <div class="field">
-                    <label>Year of birth</label>
-                    <input type="number" id="year-of-birth" value="1986" min="1900" max="2010">
-                </div>
-                <div class="field">
-                    <label>NPA</label>
-                    <input type="number" id="npa" value="68" min="65" max="68">
+                    <label>DOB</label>
+                    <input type="date" id="dob" value="1980-01-01" min="1977-04-06" max="2020-01-01">
                 </div>
             </div>
         </section>
@@ -47,7 +47,8 @@
                 <table id="salary-table">
                     <thead>
                         <tr>
-                            <th>Year</th>
+                            <th>Start Year April</th>
+                            <!-- <th>End Year March</th> -->
                             <th>Salary</th>
                             <th></th>
                         </tr>
@@ -66,7 +67,8 @@
                 <table id="added-table">
                     <thead>
                         <tr>
-                            <th>Year</th>
+                            <th>Start Year April</th>
+                            <th>Actuary Version</th>
                             <th>Type</th>
                             <th>Period</th>
                             <th>Added pension</th>
@@ -107,7 +109,7 @@
                 <table id="breakdown-table">
                     <thead>
                         <tr>
-                            <th>Year</th>
+                            <th>Start Year April</th>
                             <th>Age</th>
                             <th>Salary</th>
                             <th>Added</th>
@@ -134,10 +136,18 @@
     <template id="added-row">
         <tr>
             <td><input type="number" class="year" value="2024" min="1900" max="2100"></td>
+
+            <td>
+                <select class="actuary-version">
+                    <option value="2025-02"  selected="selected">2025-02</option>
+                    <option value="2019-07">2019-07</option>
+                </select>
+            </td>
+
             <td>
                 <select class="type">
                     <option value="self">Self</option>
-                    <option value="dependants">Dependants</option>
+                    <option value="dependants"  selected="selected">Dependants</option>
                 </select>
             </td>
             <td>
@@ -153,4 +163,5 @@
 
     <script type="module" src="./historic-salary.js"></script>
 </body>
+
 </html>

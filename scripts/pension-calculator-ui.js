@@ -2,10 +2,9 @@ import { TotalPension } from "./total-pension.js";
 
 const DOM_IDS = Object.freeze({
     form: 'pension-form',
-    age: 'age',
+    dob: 'dob',
     retirementAge: 'retirement-age',
     pensionStartAge: 'pension-start-age',
-    npa: 'npa',
     salary: 'salary',
     accrued: 'accrued',
     cpi: 'cpi',
@@ -36,10 +35,9 @@ class PensionCalculatorUI {
         this.resetButton = document.getElementById(DOM_IDS.resetButton);
         this.themeToggle = document.getElementById(DOM_IDS.themeToggle);
 
-        this.ageInput = document.getElementById(DOM_IDS.age);
+        this.dobInput = document.getElementById(DOM_IDS.dob);
         this.retirementAgeInput = document.getElementById(DOM_IDS.retirementAge);
         this.pensionStartAgeInput = document.getElementById(DOM_IDS.pensionStartAge);
-        this.npaInput = document.getElementById(DOM_IDS.npa);
         this.salaryInput = document.getElementById(DOM_IDS.salary);
         this.accruedInput = document.getElementById(DOM_IDS.accrued);
         this.cpiInput = document.getElementById(DOM_IDS.cpi);
@@ -48,7 +46,7 @@ class PensionCalculatorUI {
 
         this.loadTheme();
         this.addEventListeners();
-        // this.updatePensionStartAgeConstraints();
+
         this.loadState();
         this.form.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -86,7 +84,7 @@ class PensionCalculatorUI {
     // === Event Handlers ===
 
     handleInput(e) {
-        if (e.target === this.retirementAgeInput || e.target === this.pensionStartAgeInput || e.target === this.npaInput) {
+        if (e.target === this.retirementAgeInput || e.target === this.pensionStartAgeInput) {
             this.updateAgeConstraints(e.target);
         }
 
@@ -96,25 +94,19 @@ class PensionCalculatorUI {
     updateAgeConstraints(target) {
         let retirementAge = +this.retirementAgeInput.value;
         let pensionStartAge = +this.pensionStartAgeInput.value;
-        let npa = +this.npaInput.value;
 
         if (target === this.retirementAgeInput) {
             pensionStartAge = Math.max(pensionStartAge, retirementAge);
-            npa = Math.max(npa, Math.min(68, pensionStartAge));
-        } else if (target === this.npaInput) {
-            pensionStartAge = Math.min(pensionStartAge, npa);
-            retirementAge = Math.min(retirementAge, pensionStartAge);
         } else if (target === this.pensionStartAgeInput) {
             retirementAge = Math.min(retirementAge, pensionStartAge);
-            npa = Math.max(npa, Math.min(68, pensionStartAge));
+
         }
 
-        // Final safety: retirement ≤ pensionStart ≤ NPA
-        pensionStartAge = Math.max(retirementAge, Math.min(npa, pensionStartAge));
+        // Final safety: retirement ≤ pensionStart
+        pensionStartAge = Math.max(retirementAge, pensionStartAge);
 
         this.retirementAgeInput.value = retirementAge;
         this.pensionStartAgeInput.value = pensionStartAge;
-        this.npaInput.value = npa;
     }
 
     handleAddRow(e) {
@@ -177,34 +169,6 @@ class PensionCalculatorUI {
         target.dispatchEvent(new Event("input", { bubbles: true }));
     }
 
-    // === Constraints ===
-
-    // updatePensionStartAgeConstraints() {
-    //     const retirementAge = +this.retirementAgeInput.value;
-    //     const npa = +this.npaInput.value;
-
-    //     this.pensionStartAgeInput.min = retirementAge;
-    //     this.pensionStartAgeInput.max = npa;
-
-    //     const current = +this.pensionStartAgeInput.value;
-    //     if (current < retirementAge) this.pensionStartAgeInput.value = retirementAge;
-    //     if (current > npa) this.pensionStartAgeInput.value = npa;
-    // }
-
-    // updateNpaConstraints() {
-    //     const pensionStartAge = +this.pensionStartAgeInput.value;
-    //     this.npaInput.min = pensionStartAge;
-
-    //     const npaValue = +this.npaInput.value;
-    //     if (npaValue < pensionStartAge)
-    //         this.npaInput.value = pensionStartAge;
-
-    //     if (npaValue < 65) this.npaInput.value = 65;
-    //     if (npaValue > 68) this.npaInput.value = 68;
-    // }
-
-    // === Data ===
-
     getRows() {
         return [...this.tableBody.querySelectorAll("tr")]
             .map(row => ({
@@ -222,10 +186,9 @@ class PensionCalculatorUI {
         try {
             const state = JSON.parse(savedData);
 
-            this.ageInput.value = state.age ?? this.ageInput.value;
+            this.dobInput.value = Temporal.PlainDate.from(state.dob ?? this.dobInput.value);
             this.retirementAgeInput.value = state.retirementAge ?? this.retirementAgeInput.value;
             this.pensionStartAgeInput.value = state.pensionStartAge ?? this.pensionStartAgeInput.value;
-            this.npaInput.value = state.npa ?? this.npaInput.value;
             this.salaryInput.value = state.salary ?? this.salaryInput.value;
             this.accruedInput.value = state.accrued ?? this.accruedInput.value;
             this.cpiInput.value = state.cpi ?? this.cpiInput.value;
@@ -241,9 +204,6 @@ class PensionCalculatorUI {
                     this.tableBody.appendChild(rowNode);
                 }
             }
-
-            // this.updatePensionStartAgeConstraints();
-            // this.updateNpaConstraints();
         } catch (e) {
             console.error("Failed to load pension calculator state from localStorage", e);
         }
@@ -251,10 +211,9 @@ class PensionCalculatorUI {
 
     saveState() {
         const state = {
-            age: this.ageInput.value,
+            dob: this.dobInput.value,
             retirementAge: this.retirementAgeInput.value,
             pensionStartAge: this.pensionStartAgeInput.value,
-            npa: this.npaInput.value,
             salary: this.salaryInput.value,
             accrued: this.accruedInput.value,
             cpi: this.cpiInput.value,
@@ -288,10 +247,9 @@ class PensionCalculatorUI {
         }));
 
         const memberData = {
-            age: +this.ageInput.value,
+            dob: Temporal.PlainDate.from(this.dobInput.value),
             retirementAge: +this.retirementAgeInput.value,
             pensionStartAge: +this.pensionStartAgeInput.value,
-            npa: +this.npaInput.value,
             salary: +this.salaryInput.value,
             accrued: +this.accruedInput.value,
             cpi: +this.cpiInput.value / 100,

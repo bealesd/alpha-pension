@@ -1,10 +1,15 @@
+import { Helpers } from "./helper.js";
+
 export class RegularPension {
+
     calculate(memberData) {
+        const ageAtSchemeStart = Helpers.getAgeAtSchemeStart(memberData.dob);
+
         let totalPension = 0;
         const contributionRate = 0.0232;
         const stopAge = memberData.retirementAge;
 
-        for (let currentAge = memberData.age; currentAge < memberData.retirementAge; currentAge++) {
+        for (let currentAge = ageAtSchemeStart; currentAge < memberData.retirementAge; currentAge++) {
             const yearlyContribution = currentAge < stopAge ? memberData.salary * contributionRate : 0;
             const growthFactor = Math.pow(1 + memberData.cpi, memberData.retirementAge - currentAge);
             totalPension += yearlyContribution * growthFactor;
@@ -14,8 +19,10 @@ export class RegularPension {
 
     // helper: convert current lump sum to annual pension at retirement
     convertAccruedToAnnual(memberData) {
+        const ageAtSchemeStart = Helpers.getAgeAtSchemeStart(memberData.dob);
+
         if (!memberData.accrued || memberData.accrued <= 0) return 0;
-        const currentAge = memberData.age;
+        const currentAge = ageAtSchemeStart;
         const retirementAge = memberData.retirementAge;
 
         // grow the lump-sum to retirement nominally

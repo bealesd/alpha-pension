@@ -1,4 +1,5 @@
 ﻿import { AddedPension } from "../scripts/added-pension.js";
+import { Helpers } from "../scripts/helper.js";
 
 const STORAGE_KEY = 'historicSalaryState';
 const CONTRIBUTION_RATE = 0.0232;
@@ -17,8 +18,8 @@ class HistoricSalaryUI {
         this.totalCombined = document.getElementById('total-combined');
 
         this.currentYearInput = document.getElementById('current-year');
-        this.yearOfBirthInput = document.getElementById('year-of-birth');
-        this.npaInput = document.getElementById('npa');
+        this.dobInput = document.getElementById('dob');
+
 
         this.addedPension = new AddedPension();
 
@@ -30,8 +31,7 @@ class HistoricSalaryUI {
         this.addedTableBody.addEventListener('click', this.handleRemoveRow.bind(this));
 
         this.currentYearInput.addEventListener('input', this.handleInput.bind(this));
-        this.yearOfBirthInput.addEventListener('input', this.handleInput.bind(this));
-        this.npaInput.addEventListener('input', this.handleInput.bind(this));
+        this.dobInput.addEventListener('input', this.handleInput.bind(this));
 
         this.loadState();
         if (this.salaryTableBody.children.length === 0) {
@@ -80,6 +80,7 @@ class HistoricSalaryUI {
         const row = template.content.cloneNode(true);
         const tr = row.querySelector('tr');
 
+        tr.querySelector('.actuary-version').value = data.actuaryVersion;
         tr.querySelector('.year').value = data.year;
         tr.querySelector('.type').value = data.type;
         tr.querySelector('.period').value = data.period;
@@ -106,6 +107,7 @@ class HistoricSalaryUI {
 
                 return {
                     year: Number(row.querySelector('.year').value) || 0,
+                    actuaryVersion: row.querySelector('.actuary-version').value,
                     type: row.querySelector('.type').value,
                     period,
                     added,
@@ -118,12 +120,10 @@ class HistoricSalaryUI {
 
     getSettings() {
         const currentYear = Number(this.currentYearInput.value) || new Date().getFullYear();
-        const yearOfBirth = Number(this.yearOfBirthInput.value) || 1986;
+        const dob = Temporal.PlainDate.from(this.dobInput.value || "19800101");
         return {
             currentYear,
-            yearOfBirth,
-            currentAge: currentYear - yearOfBirth,
-            npa: Number(this.npaInput.value) || 68
+            dob
         };
     }
 
@@ -131,12 +131,13 @@ class HistoricSalaryUI {
         return settings.currentAge - (settings.currentYear - row.year);
     }
 
-    estimateSalaryPension(row, settings, age) {
+    estimateSalaryPension(row) {
         return row.salary * CONTRIBUTION_RATE;
     }
 
-    estimateAddedPension(row, settings, age) {
-        return this.addedPension.calculateAddedPensionForYearForGivenAge(row.annualAdded, age, row.type, settings.npa);
+    estimateAddedPension(row, dob, schemaStartYear) {
+        //totalContributionsForPeriod, type, dob, schemaStartYear
+        return this.addedPension.calculateAddedPensionForYearForGivenAge(row.annualAdded, row.type, dob, schemaStartYear, row.actuaryVersion);
     }
 
     update() {
@@ -158,10 +159,12 @@ class HistoricSalaryUI {
         let addedPensionValue = 0;
 
         const detailedRows = salaryRows.map(salaryRow => {
-            const age = this.getAgeForRow(salaryRow, settings);
-            const salaryValue = this.estimateSalaryPension(salaryRow, settings, age);
+            const schemeYearDates = Helpers.getSchemeDatesForYear(salaryRow.year);
+            const age = Helpers.getAgeAtDate(settings.dob, schemeYearDates.schemeStartDate);
+
+            const salaryValue = this.estimateSalaryPension(salaryRow);
             const addedForYear = addedByYear[salaryRow.year] || [];
-            const addedValue = addedForYear.reduce((sum, addedRow) => sum + this.estimateAddedPension(addedRow, settings, age), 0);
+            const addedValue = addedForYear.reduce((sum, addedRow) => sum + this.estimateAddedPension(addedRow, settings.dob, schemeYearDates.schemeStartDate.year), 0);
             salaryPension += salaryValue;
             addedPensionValue += addedValue;
             return {
@@ -178,9 +181,11 @@ class HistoricSalaryUI {
         // Handle years with added but no salary
         Object.keys(addedByYear).forEach(yearStr => {
             const year = Number(yearStr);
+            const schemeYearDates = Helpers.getSchemeDatesForYear(year);
             if (!salaryRows.find(r => r.year === year)) {
-                const age = this.getAgeForRow({ year }, settings);
-                const addedValue = addedByYear[year].reduce((sum, addedRow) => sum + this.estimateAddedPension(addedRow, settings, age), 0);
+                const age = Helpers.getAgeAtDate(settings.dob, schemeYearDates.schemeStartDate);
+
+                const addedValue = addedByYear[year].reduce((sum, addedRow) => sum + this.estimateAddedPension(addedRow, settings.dob, schemeYearDates.schemeStartDate.year), 0);
                 addedPensionValue += addedValue;
                 detailedRows.push({
                     year,
@@ -255,8 +260,7 @@ class HistoricSalaryUI {
             const state = JSON.parse(saved);
             if (state.settings) {
                 this.currentYearInput.value = state.settings.currentYear ?? this.currentYearInput.value;
-                this.yearOfBirthInput.value = state.settings.yearOfBirth ?? this.yearOfBirthInput.value;
-                this.npaInput.value = state.settings.npa ?? this.npaInput.value;
+                this.dobInput.value = state.settings.dob ?? this.dobInput.value;
             }
             if (Array.isArray(state.salaryRows)) {
                 this.salaryTableBody.innerHTML = '';

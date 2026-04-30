@@ -1,9 +1,9 @@
-const alphaAddedPensionRevaluationFactorByYears = {
+export const alphaAddedPensionRevaluationFactorByYears201907 = {
     // Alpha Added Pension revaluation factors
     // Source:
     // Government Actuary's Department
-    // Civil Service Pension Schemes - Consolidated Factor Spreadsheet
-    // Added pension - x-728
+    // CSPS_GB_CSPS_Additional_Pension_Guidance_CSOPS_22July2019.pdf
+    // Table 9: Revaluation factors
     0: {
         factor: 1
     },
@@ -158,5 +158,3 @@ const alphaAddedPensionRevaluationFactorByYears = {
         factor: 2.69
     }
 };
-
-export default alphaAddedPensionRevaluationFactorByYears;
