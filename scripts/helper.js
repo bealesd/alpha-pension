@@ -1,3 +1,5 @@
+import { cpiSeptember } from "../scripts/cpi-september.js";
+
 export class Helpers {
     /**
     * Calculation date for 19/20 will be 01 April 2019.
@@ -77,7 +79,7 @@ export class Helpers {
     * @returns {number} Age at start of scheme
     */
     static getAgeAtSchemeStart(dob) {
-        const currentYear = Helpers.getCurrentYear();;
+        const currentYear = Helpers.getCurrentYear();
         const schemeDates = Helpers.getSchemeDatesForYear(currentYear);
 
         const ageAtSchemeStart = Helpers.getAgeAtDate(dob, schemeDates.schemeStartDate);
@@ -91,5 +93,28 @@ export class Helpers {
     */
     static getCurrentYear() {
         return Temporal.Now.plainDateISO().year;
+    }
+
+    /**
+    * 
+    * 
+    * @returns {number} Adjusted contributions
+    */
+    static getCpiAdjustedValue(schemeStartYear, value, lastSchemeStartYear) {
+        // Example: for 25/26 statement is the latest statement
+        // Contributions should not be adjusted
+        if (schemeStartYear === lastSchemeStartYear)
+            return value;
+
+        // adjustment must be applied yearly
+        while (schemeStartYear <= lastSchemeStartYear) {
+            const cpiForSchemeStartYear = cpiSeptember[schemeStartYear];
+            const cpiForPreviousYear = cpiSeptember[schemeStartYear - 1];
+            const cpiFactor = cpiForSchemeStartYear / cpiForPreviousYear;
+            value = value * cpiFactor;
+            schemeStartYear++;
+        }
+
+        return value;
     }
 }

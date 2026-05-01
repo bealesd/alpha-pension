@@ -29,7 +29,7 @@
             <div class="settings-grid">
                 <div class="field">
                     <label>Current year</label>
-                    <input type="number" id="current-year" value="2026" min="1900" max="2100">
+                    <input type="number" id="current-year" value="2025" min="2016" max="2025" step="1">
                 </div>
                 <div class="field">
                     <label>DOB</label>
@@ -113,10 +113,11 @@
                             <th>Age</th>
                             <th>Salary</th>
                             <th>Added</th>
+                            <th>Salary pension Adj</th>
                             <th>Salary pension</th>
+                            <th>Added pension Adj</th>
                             <th>Added pension</th>
                             <th>Year total</th>
-                            <th>Year change</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -127,7 +128,7 @@
 
     <template id="salary-row">
         <tr>
-            <td><input type="number" class="year" value="2024" min="1900" max="2100"></td>
+            <td><input type="number" class="year" value="2024" min="2016" max="2024"></td>
             <td><input type="number" class="salary" value="40000" min="0" step="100"></td>
             <td><button type="button" class="button remove-row">Remove</button></td>
         </tr>
@@ -135,7 +136,7 @@
 
     <template id="added-row">
         <tr>
-            <td><input type="number" class="year" value="2024" min="1900" max="2100"></td>
+            <td><input type="number" class="year" value="2024" min="2016" max="2024"></td>
 
             <td>
                 <select class="actuary-version">

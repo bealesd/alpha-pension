@@ -38,7 +38,6 @@ export class AddedPension {
         else
             factor = alphaAddedPensionRevaluationFactorByYears201907[numberOfAprils].factor;
 
-        console.log(`Revaluation factor: ${factor} for number of Aprils: ${numberOfAprils}`);
         return factor
     };
 
@@ -51,7 +50,6 @@ export class AddedPension {
         else
             factor = alphaAddedPensionByPeriodicalContributionFactorsForNpa201907[NPA][age][type];
 
-        console.log(`Contribution factor: ${factor} for age: ${age}`);
         return factor;
     };
 

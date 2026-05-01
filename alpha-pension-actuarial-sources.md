@@ -14,5 +14,22 @@ This contains information about the data sources used in the calculations. All d
 Online link to [pension tables](https://gadfactorguidancehub.co.uk/guidance/csps_gb/added-pension/csps_gb__csops__added-pension/tables)
 
 Online link To [*CS GB Consolidated Factors 2025-02.xlsx*](https://gadfactorguidancehub.co.uk/media/consolidated_factors/CSPS_GB/CS_GB_Consolidated_Factors_2025-02.xlsx)
-
 Local link To [*CS GB Consolidated Factors 2025-02.xlsx*](./assets/CS_GB_Consolidated_Factors_2025-02.xlsx)
+
+Online Historic CPI Values [consumer price inflation detailed reference tables](https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/consumerpriceinflation)
+Local Historic CPI Values [consumer price inflation detailed reference tables](./assets/consumerpriceinflationdetailedreferencetables.xlsx)
+
+## Calculations
+The amount of added pension, P, added to a member's pension at the end of the period of contributions during that scheme year is determined as follows:
+
+P = C / (FxRC x FyReval)
+
+Where:
+
+C = total amount of periodic contributions over scheme year
+
+x = member's age in complete years at the start of the scheme year or start of the period of payment if later (ie at the calculation date)
+
+FxRC = regular contribution factor at age x from corresponding NPA table (Tables x-718 to x-721)
+
+FyReval = relevant revaluation factor for a member with y 1 Aprils (from the day after the date of commencement of contributions) up to and including NPA (Table x-728)
