@@ -39,7 +39,7 @@ class HistoricSalaryUI {
 
     handleAddSalaryRow(event) {
         event.preventDefault();
-        this.addSalaryRow({ year:2024, salary: 0 });
+        this.addSalaryRow({ year: 2024, salary: 0 });
         this.update();
     }
 
@@ -140,125 +140,121 @@ class HistoricSalaryUI {
         const salaryRows = this.getSalaryRows();
         const addedRows = this.getAddedRows();
 
-        // Group added by year
-        const addedByYear = {};
-        addedRows.forEach(row => {
-            if (!addedByYear[row.year]) addedByYear[row.year] = [];
-            addedByYear[row.year].push(row);
-        });
+        // 1. Create lookups for quick access
+        const salaryByYear = Object.fromEntries(salaryRows.map(r => [r.year, r]));
+        const addedByYear = addedRows.reduce((acc, row) => {
+            (acc[row.year] = acc[row.year] || []).push(row);
+            return acc;
+        }, {});
 
-        const totalSalary = salaryRows.reduce((sum, row) => sum + row.salary, 0);
-        const totalAdded = addedRows.reduce((sum, row) => sum + row.annualAdded, 0);
+        // 2. Get a unique list of all years from both datasets
+        const allYears = [...new Set([...salaryRows.map(r => r.year), ...Object.keys(addedByYear).map(Number)])].sort((a, b) => a - b);
 
-        let salaryPension = 0;
-        let addedPensionValue = 0;
+        let totalSalaryPension = 0;
+        let totalAddedPension = 0;
 
-        const detailedRows = salaryRows.map(salaryRow => {
-            const schemeYearDates = Helpers.getSchemeDatesForYear(salaryRow.year);
-            const age = Helpers.getAgeAtDate(settings.dob, schemeYearDates.schemeStartDate);
+        const detailedRows = allYears.map(year => {
+            const salaryRow = salaryByYear[year];
+            const addedForYear = addedByYear[year] || [];
+            const schemeDates = Helpers.getSchemeDatesForYear(year);
+            const age = Helpers.getAgeAtDate(settings.dob, schemeDates.schemeStartDate);
 
-            const salaryValue = this.estimateSalaryPension(salaryRow);
-            const addedForYear = addedByYear[salaryRow.year] || [];
-            const addedValueAdjusted = addedForYear.reduce(
-                (sum, addedRow) => {
-                    const amountAdded = this.estimateAddedPension(addedRow, settings.dob, schemeYearDates.schemeStartDate.year);
-                    const adjustedAmountAdded = Helpers.getCpiAdjustedValue(schemeYearDates.schemeStartDate.year, amountAdded, settings.currentYear);
-                    return sum + adjustedAmountAdded;
-                }, 0
-            );
-            const addedValue = addedForYear.reduce(
-                (sum, addedRow) => {
-                    const amountAdded = this.estimateAddedPension(addedRow, settings.dob, schemeYearDates.schemeStartDate.year);
-                    return sum + amountAdded;
-                }, 0
-            );
+            // Calculate Salary Pension
+            const salaryVal = salaryRow ? this.estimateSalaryPension(salaryRow) : 0;
+            const salaryValAdj = salaryRow ? Helpers.getCpiAdjustedValue(schemeDates.schemeStartDate.year, salaryVal, settings.currentYear) : 0;
 
-            const salaryValueAdjusted = Helpers.getCpiAdjustedValue(schemeYearDates.schemeStartDate.year, salaryValue, settings.currentYear);
+            // Calculate Added Pension (Logic now lives in one place)
+            let addedVal = 0;
+            let addedValAdj = 0;
 
-            salaryPension += salaryValueAdjusted;
-            addedPensionValue += addedValueAdjusted;
+            addedForYear.forEach(row => {
+                const amount = this.estimateAddedPension(row, settings.dob, schemeDates.schemeStartDate.year);
+                addedVal += amount;
+                addedValAdj += Helpers.getCpiAdjustedValue(schemeDates.schemeStartDate.year, amount, settings.currentYear);
+            });
+
+            totalSalaryPension += salaryValAdj;
+            totalAddedPension += addedValAdj;
+
             return {
-                year: salaryRow.year,
+                year,
                 age,
-                salary: salaryRow.salary,
-                added: addedForYear.reduce((sum, row) => sum + row.annualAdded, 0),
-                salaryPensionAdjusted: salaryValueAdjusted,
-                salaryPensionUnadjusted: salaryValue,
-                addedPensionAdjusted: addedValueAdjusted,
-                addedPensionUnadjusted: addedValue,
-                totalValue: salaryValueAdjusted + addedValueAdjusted
+                salary: salaryRow?.salary || 0,
+                ap: addedForYear.reduce((sum, r) => sum + r.annualAdded, 0),
+                salaryPensionAdjusted: salaryValAdj,
+                salaryPensionUnadjusted: salaryVal,
+                addedPensionAdjusted: addedValAdj,
+                addedPensionUnadjusted: addedVal,
+                totalValue: salaryValAdj + addedValAdj
             };
         });
 
-        // Handle years with added but no salary
-        Object.keys(addedByYear).forEach(yearStr => {
-            const year = Number(yearStr);
-            const schemeYearDates = Helpers.getSchemeDatesForYear(year);
-            if (!salaryRows.find(r => r.year === year)) {
-                const age = Helpers.getAgeAtDate(settings.dob, schemeYearDates.schemeStartDate);
-
-                const addedValueAdjusted = addedByYear[year].reduce(
-                    (sum, addedRow) => {
-                        const amountAdded = this.estimateAddedPension(addedRow, settings.dob, schemeYearDates.schemeStartDate.year);
-                        const adjustedAmountAdded = Helpers.getCpiAdjustedValue(schemeYearDates.schemeStartDate.year, amountAdded, settings.currentYear);
-                        return sum + adjustedAmountAdded;
-                    }, 0
-                );
-                const addedValue = addedByYear[year].reduce(
-                    (sum, addedRow) => {
-                        const amountAdded = this.estimateAddedPension(addedRow, settings.dob, schemeYearDates.schemeStartDate.year);
-                        return sum + amountAdded;
-                    }, 0
-                );
-                addedPensionValue += addedValueAdjusted;
-                detailedRows.push({
-                    year,
-                    age,
-                    salary: 0,
-                    added: addedByYear[year].reduce((sum, row) => sum + row.annualAdded, 0),
-                    salaryPensionAdjusted: 0,
-                    salaryPensionUnadjusted: 0,
-                    addedPensionAdjusted: addedValueAdjusted,
-                    addedPensionUnadjusted: addedValue,
-                    totalValue: addedValueAdjusted
-                });
-            }
+        // 3. Update UI and State
+        this.updateUI({
+            totalSalary: salaryRows.reduce((sum, r) => sum + r.salary, 0),
+            totalAdded: addedRows.reduce((sum, r) => sum + r.annualAdded, 0),
+            salaryPension: totalSalaryPension,
+            addedPension: totalAddedPension
         });
-
-        detailedRows.sort((a, b) => a.year - b.year);
-
-        const combinedPension = salaryPension + addedPensionValue;
-
-        this.totalSalary.textContent = this.formatCurrency(totalSalary);
-        this.totalAdded.textContent = this.formatCurrency(totalAdded);
-        this.totalSalaryPension.textContent = this.formatCurrency(salaryPension);
-        this.totalAddedPension.textContent = this.formatCurrency(addedPensionValue);
-        this.totalCombined.textContent = this.formatCurrency(combinedPension);
 
         this.renderBreakdown(detailedRows);
         this.saveState(salaryRows, addedRows, settings);
     }
 
+    // Optional: Helper to keep the UI logic out of the main calculation
+    updateUI(totals) {
+        this.totalSalary.textContent = this.formatCurrency(totals.totalSalary);
+        this.totalAdded.textContent = this.formatCurrency(totals.totalAdded);
+        this.totalSalaryPension.textContent = this.formatCurrency(totals.salaryPension);
+        this.totalAddedPension.textContent = this.formatCurrency(totals.addedPension);
+        this.totalCombined.textContent = this.formatCurrency(totals.salaryPension + totals.addedPension);
+    }
+
     renderBreakdown(rows) {
         this.breakdownBody.innerHTML = '';
-        let previousTotal = 0;
+        let pensionTotal = 0;
+        let salaryPensionTotal = 0;
 
+        let apTotalPrevious = 0;
+        let openingAp = 0;
+
+        let i = 0;
         for (const row of rows) {
+            pensionTotal += row.totalValue;
+            salaryPensionTotal += row.salaryPensionAdjusted;
+
+            let openingAp = apTotalPrevious;
+            const cpi = Helpers.getSingleYearCpi(row.year);
+
+            const unadjustedTotalAp = row.addedPensionUnadjusted + apTotalPrevious;
+            const adjustedTotalAp = Helpers.getSingleYearCpiAdjustedValue(row.year, unadjustedTotalAp);
+
+            const increaseInOpeningApThroughInflation = adjustedTotalAp - unadjustedTotalAp;
+            apTotalPrevious = adjustedTotalAp;
+
             const tr = document.createElement('tr');
 
             tr.innerHTML = `
                 <td>${row.year}</td>
                 <td>${row.age}</td>
                 <td>${this.formatCurrency(row.salary)}</td>
-                <td>${this.formatCurrency(row.added)}</td>
-                <td>${this.formatCurrency(row.salaryPensionAdjusted)}</td>
                 <td>${this.formatCurrency(row.salaryPensionUnadjusted)}</td>
-                <td>${this.formatCurrency(row.addedPensionAdjusted)}</td>
+                <td>${this.formatCurrency(row.salaryPensionAdjusted)}</td>       
+                <td>${this.formatCurrency(salaryPensionTotal)}</td>   
+
+                <td>${this.formatCurrency(openingAp)}</td>     
+                <td>${this.formatCurrency(row.ap)}</td>
                 <td>${this.formatCurrency(row.addedPensionUnadjusted)}</td>
+                <td>${cpi.toFixed(1)}</td>
+                <td>${this.formatCurrency(increaseInOpeningApThroughInflation)}</td>
+                <td>${this.formatCurrency(apTotalPrevious)}</td>
+
                 <td>${this.formatCurrency(row.totalValue)}</td>
+                <td>${this.formatCurrency(pensionTotal)}</td>
             `;
             this.breakdownBody.appendChild(tr);
-            previousTotal = row.totalValue;
+
+            i++;
         }
     }
 

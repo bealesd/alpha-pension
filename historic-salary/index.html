@@ -112,12 +112,19 @@
                             <th>Start Year April</th>
                             <th>Age</th>
                             <th>Salary</th>
-                            <th>Added</th>
-                            <th>Salary pension Adj</th>
-                            <th>Salary pension</th>
-                            <th>Added pension Adj</th>
+                            <th>Salary Pension</th>
+                            <th>Salary Pension Adj</th>
+                            <th>Total Salary Pension</th>
+
+                            <th>Opening AP</th>
+                            <th>AP Added This Year</th>
                             <th>Added pension</th>
-                            <th>Year total</th>
+                            <th>Inflation</th>
+                            <th>AP Adjustment</th>
+                            <th>Closing AP</th>
+
+                            <th>Pension Increase</th>
+                            <th>Total Pension</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -128,7 +135,7 @@
 
     <template id="salary-row">
         <tr>
-            <td><input type="number" class="year" value="2024" min="2016" max="2024"></td>
+            <td><input type="number" class="year" value="2024" min="2016" max="2025"></td>
             <td><input type="number" class="salary" value="40000" min="0" step="100"></td>
             <td><button type="button" class="button remove-row">Remove</button></td>
         </tr>
@@ -136,11 +143,11 @@
 
     <template id="added-row">
         <tr>
-            <td><input type="number" class="year" value="2024" min="2016" max="2024"></td>
+            <td><input type="number" class="year" value="2024" min="2016" max="2025"></td>
 
             <td>
                 <select class="actuary-version">
-                    <option value="2025-02"  selected="selected">2025-02</option>
+                    <option value="2025-02" selected="selected">2025-02</option>
                     <option value="2019-07">2019-07</option>
                 </select>
             </td>
@@ -148,7 +155,7 @@
             <td>
                 <select class="type">
                     <option value="self">Self</option>
-                    <option value="dependants"  selected="selected">Dependants</option>
+                    <option value="dependants" selected="selected">Dependants</option>
                 </select>
             </td>
             <td>

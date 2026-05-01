@@ -117,4 +117,29 @@ export class Helpers {
 
         return value;
     }
+
+    /**
+    * 
+    * 
+    * @returns {number} Adjusted contributions
+    */
+    static getSingleYearCpiAdjustedValue(year, value) {
+        const cpiForSchemeStartYear = cpiSeptember[year];
+        const cpiForPreviousYear = cpiSeptember[year - 1];
+        const cpiFactor = cpiForSchemeStartYear / cpiForPreviousYear;
+        value = value * cpiFactor;
+        return value;
+    }
+
+    /**
+    * 
+    * 
+    * @returns {number} Adjusted contributions
+    */
+    static getSingleYearCpi(year) {
+        const cpiForSchemeStartYear = cpiSeptember[year];
+        const cpiForPreviousYear = cpiSeptember[year - 1];
+        const cpiFactor = ((cpiForSchemeStartYear / cpiForPreviousYear) - 1) * 100;
+        return cpiFactor;
+    }
 }
