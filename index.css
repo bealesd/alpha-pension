@@ -127,7 +127,7 @@ label {
     color: var(--color-primary-hover);
 }
 
-..github-link svg {
+.github-link svg {
     width: 24px;
     height: 24px;
 }

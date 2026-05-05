@@ -5,12 +5,14 @@ export default class TableSorter {
         this.headers = this.table.querySelectorAll('thead th');
         this.config = config;
 
-        this.injectStyles(); // Add the CSS first
+        // Array to hold multi-sort state: [{ index: 0, direction: 'asc', type: 'number' }, ...]
+        this.currentSorts = [];
+
+        this.injectStyles();
         this.init();
     }
 
     injectStyles() {
-        // Prevent injecting styles multiple times if you have multiple tables
         if (document.getElementById('table-sorter-styles')) return;
 
         const style = document.createElement('style');
@@ -20,40 +22,90 @@ export default class TableSorter {
                 cursor: pointer;
                 user-select: none;
                 position: relative;
-                padding-right: 20px !important; /* Make room for arrows */
+                /* Make enough room on the right for the arrow AND the number badge */
+                padding-right: 35px !important; 
             }
             th.ts-sortable::after {
-                content: '\\2195'; /* Up/Down arrow */
+                content: '\\2195'; 
                 position: absolute;
-                right: 5px;
+                /* Move arrow slightly inwards */
+                right: 15px; 
+                top: 50%;
+                transform: translateY(-50%);
                 color: #ccc;
             }
             th.ts-sort-asc::after {
-                content: '\\2191'; /* Up arrow */
+                content: '\\2191'; 
                 color: black;
             }
             th.ts-sort-desc::after {
-                content: '\\2193'; /* Down arrow */
+                content: '\\2193'; 
                 color: black;
             }
-            /* Optional hover effect */
             th.ts-sortable:hover {
                 background-color: rgba(0,0,0,0.05);
+            }
+            
+            /* Multi-sort priority numbers */
+            th[data-ts-sort-index]::before {
+                content: attr(data-ts-sort-index);
+                position: absolute;
+                /* Position it inside the TH, to the right of the arrow */
+                right: 2px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 0.7em;
+                background: #007bff;
+                color: white;
+                border-radius: 50%;
+                width: 14px;
+                height: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                /* Ensure it stays above other elements */
+                z-index: 1; 
+            }
+
+            .ts-search-wrapper {
+                margin-bottom: 10px;
+                display: flex;
+                justify-content: flex-end; /* Aligns search bar to the right */
+            }
+
+            .ts-search-input {
+                padding: 6px 12px;
+                border-radius: 12px;
+                border: 1px solid #d1d5db;
+                font-size: 14px;
+                box-sizing: border-box;
+                width: 100%;
+                max-width: 250px;
+                font-family: inherit;
+            }
+
+            .ts-search-input:focus {
+                outline: none;
+                border-color: #6366f1;
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
             }
         `;
         document.head.appendChild(style);
     }
 
     init() {
+        // 1. Add Search Bar if configured
+        if (this.config.searchable) {
+            this.addSearchBar();
+        }
+
         this.headers.forEach((th, index) => {
             const columnConfig = this.config.columns[index];
             if (columnConfig && columnConfig.sortable) {
-                // I prefixed classes with 'ts-' (table-sorter) to prevent conflicts
                 th.classList.add('ts-sortable');
 
-                th.addEventListener('click', () => {
-                    const isAscending = th.classList.contains('ts-sort-asc');
-                    this.sortColumn(index, columnConfig.type, !isAscending);
+                th.addEventListener('click', (e) => {
+                    this.handleHeaderClick(index, columnConfig.type, e.shiftKey);
                 });
             }
         });
@@ -62,33 +114,143 @@ export default class TableSorter {
             const { index, direction } = this.config.defaultSort;
             const colConfig = this.config.columns[index];
             if (colConfig) {
-                this.sortColumn(index, colConfig.type, direction === 'asc');
+                this.handleHeaderClick(index, colConfig.type, false, direction);
+            }
+        }
+    }
+
+    addSearchBar() {
+        // 1. Safety check: Prevent duplicate search bars for this specific table
+        const searchWrapperId = `ts-search-wrapper-${this.table.id}`;
+        if (document.getElementById(searchWrapperId)) {
+            return; // Search bar already exists, exit the function
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.id = searchWrapperId; // Assign the unique ID
+        wrapper.className = 'ts-search-wrapper';
+
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'ts-search-input';
+        searchInput.placeholder = this.config.searchPlaceholder || 'Search...';
+
+        searchInput.addEventListener('input', (e) => {
+            this.filterTable(e.target.value.toLowerCase().trim());
+        });
+
+        wrapper.appendChild(searchInput);
+
+        const tableWrapper = this.table.closest('.table-wrapper');
+
+        if (tableWrapper) {
+            tableWrapper.parentNode.insertBefore(wrapper, tableWrapper);
+        } else {
+            this.table.parentNode.insertBefore(wrapper, this.table);
+        }
+    }
+
+    filterTable(searchTerm) {
+        const rows = this.tbody.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            // Build a string of all values in this specific row
+            let rowText = '';
+            for (let i = 0; i < row.children.length; i++) {
+                // We use your existing getCellValue so it correctly reads the inputs/selects!
+                rowText += this.getCellValue(row, i) + ' ';
+            }
+
+            // If the row text includes the search term, show it. Otherwise, hide it.
+            if (rowText.toLowerCase().includes(searchTerm)) {
+                row.style.display = ''; // Resets display to default (shows row)
+            } else {
+                row.style.display = 'none'; // Hides row
+            }
+        });
+    }
+
+    handleHeaderClick(index, type, isShiftKey, forceDirection = null) {
+        // Find if this column is already being sorted
+        const existingSortIndex = this.currentSorts.findIndex(s => s.index === index);
+        let newDirection = 'asc';
+
+        if (existingSortIndex > -1) {
+            // Toggle direction if already sorting by this column
+            newDirection = this.currentSorts[existingSortIndex].direction === 'asc' ? 'desc' : 'asc';
+        }
+
+        if (forceDirection) {
+            newDirection = forceDirection;
+        }
+
+        if (!isShiftKey) {
+            // Standard click: Clear all other sorts
+            this.currentSorts = [{ index, direction: newDirection, type }];
+        } else {
+            // Shift + Click: Add/Update multi-sort
+            if (existingSortIndex > -1) {
+                // Update existing column direction
+                this.currentSorts[existingSortIndex].direction = newDirection;
+            } else {
+                // Add new column to the sort array
+                this.currentSorts.push({ index, direction: newDirection, type });
             }
         }
 
-        this.enableColumnDragging();
+        this.applySort();
     }
 
-    sortColumn(index, type, isAscending) {
+    applySort() {
+        // 1. Update UI (arrows and priority numbers)
         this.headers.forEach(th => {
             th.classList.remove('ts-sort-asc', 'ts-sort-desc');
+            th.removeAttribute('data-ts-sort-index');
         });
-        this.headers[index].classList.add(isAscending ? 'ts-sort-asc' : 'ts-sort-desc');
 
-        const rows = Array.from(this.tbody.querySelectorAll('tr'));
-
-        const sortedRows = rows.sort((rowA, rowB) => {
-            const valA = this.getCellValue(rowA, index);
-            const valB = this.getCellValue(rowB, index);
-
-            if (type === 'number') {
-                return isAscending ? valA - valB : valB - valA;
-            } else {
-                return isAscending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+        this.currentSorts.forEach((sortDef, i) => {
+            const th = this.headers[sortDef.index];
+            th.classList.add(sortDef.direction === 'asc' ? 'ts-sort-asc' : 'ts-sort-desc');
+            // If multi-sorting, show a little number indicating primary/secondary sort
+            if (this.currentSorts.length > 1) {
+                th.setAttribute('data-ts-sort-index', i + 1);
             }
         });
 
-        // Re-append sorted rows (moves them without destroying state)
+        // 2. Sort the rows
+        const rows = Array.from(this.tbody.querySelectorAll('tr'));
+
+        const sortedRows = rows.sort((rowA, rowB) => {
+            // Loop through our sort criteria
+            for (let sortDef of this.currentSorts) {
+                let valA = this.getCellValue(rowA, sortDef.index);
+                let valB = this.getCellValue(rowB, sortDef.index);
+
+                let comparison = 0;
+
+                if (sortDef.type === 'number') {
+                    // Strip out £, $, commas, and spaces before converting to a number
+                    const cleanA = String(valA).replace(/[^0-9.-]+/g, "");
+                    const cleanB = String(valB).replace(/[^0-9.-]+/g, "");
+
+                    const numA = Number(cleanA) || 0;
+                    const numB = Number(cleanB) || 0;
+                    comparison = numA - numB;
+                } else {
+                    comparison = String(valA).localeCompare(String(valB));
+                }
+
+                // If they are not equal, we have our tiebreaker! Return the result.
+                if (comparison !== 0) {
+                    return sortDef.direction === 'asc' ? comparison : -comparison;
+                }
+
+                // If they are equal, the loop continues to the next sort field in the array
+            }
+            return 0; // Completely equal across all sort fields
+        });
+
+        // 3. Re-append rows to DOM
         sortedRows.forEach(row => this.tbody.appendChild(row));
     }
 
@@ -101,96 +263,5 @@ export default class TableSorter {
             return input.value;
         }
         return cell.textContent.trim();
-    }
-
-    // Draggable Column Logic
-    enableColumnDragging() {
-        let draggedIndex = -1;
-
-        this.headers.forEach(th => {
-            // Make headers draggable
-            th.draggable = true;
-
-            // 1. Start dragging
-            th.addEventListener('dragstart', (e) => {
-                // Find current index dynamically because columns might have moved
-                draggedIndex = Array.from(th.parentNode.children).indexOf(th);
-                e.dataTransfer.effectAllowed = 'move';
-                th.style.opacity = '0.5';
-            });
-
-            // 2. Drag over another header (required to allow dropping)
-            th.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            });
-
-            // 3. Drop
-            th.addEventListener('drop', (e) => {
-                e.preventDefault();
-                th.style.opacity = '1';
-
-                const targetIndex = Array.from(th.parentNode.children).indexOf(th);
-                if (draggedIndex === -1 || draggedIndex === targetIndex) return;
-
-                this.moveColumn(draggedIndex, targetIndex);
-            });
-
-            // 4. End drag (cleanup)
-            th.addEventListener('dragend', () => {
-                th.style.opacity = '1';
-                draggedIndex = -1;
-            });
-        });
-    }
-
-    moveColumn(fromIndex, toIndex) {
-        // Move the header
-        const theadRow = this.table.querySelector('thead tr');
-        this.moveCell(theadRow, fromIndex, toIndex);
-
-        // Move the cells in every body row
-        const tbodyRows = this.tbody.querySelectorAll('tr');
-        tbodyRows.forEach(row => {
-            this.moveCell(row, fromIndex, toIndex);
-        });
-
-        // Update the internal configuration indexes so sorting still works
-        this.updateConfigAfterMove(fromIndex, toIndex);
-
-        // Re-query the headers array so it matches the new DOM order
-        this.headers = this.table.querySelectorAll('thead th');
-    }
-
-    moveCell(row, fromIndex, toIndex) {
-        const cells = Array.from(row.children);
-        const cellToMove = cells[fromIndex];
-        const targetCell = cells[toIndex];
-
-        // Insert before or after depending on drag direction
-        if (fromIndex < toIndex) {
-            row.insertBefore(cellToMove, targetCell.nextSibling);
-        } else {
-            row.insertBefore(cellToMove, targetCell);
-        }
-    }
-
-    updateConfigAfterMove(fromIndex, toIndex) {
-        const newConfigColumns = {};
-        const oldKeys = Object.keys(this.config.columns).map(Number);
-
-        oldKeys.forEach(oldIndex => {
-            let newIndex = oldIndex;
-            if (oldIndex === fromIndex) {
-                newIndex = toIndex;
-            } else if (fromIndex < toIndex && oldIndex > fromIndex && oldIndex <= toIndex) {
-                newIndex--;
-            } else if (fromIndex > toIndex && oldIndex < fromIndex && oldIndex >= toIndex) {
-                newIndex++;
-            }
-            newConfigColumns[newIndex] = this.config.columns[oldIndex];
-        });
-
-        this.config.columns = newConfigColumns;
     }
 }

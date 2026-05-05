@@ -1,3 +1,48 @@
+/* === Variables === */
+:root {
+    --color-primary: #4f46e5;
+    --color-primary-hover: #4338ca;
+    --color-primary-light: #ffffff;
+    --color-primary-ring: rgba(79, 70, 229, 0.15);
+    --color-text: #1f2937;
+    --color-text-muted: #666;
+    --color-text-help: #4b5563;
+    --color-border: #d1d5db;
+    --color-border-light: #f0f0f0;
+    --color-border-table: #eee;
+    --color-bg: #ffffff;
+    --color-bg-hover: #fafafa;
+    --color-bg-body-start: #eef2ff;
+    --color-bg-body-end: #f8fafc;
+    --color-bg-forecast-end: #e0e7ff;
+    --color-bg-input: #ffffff;
+    --color-shadow: rgba(0, 0, 0, 0.08);
+    --radius: 8px;
+    --radius-lg: 14px;
+    --font-sm: 13px;
+    --font-base: 14px;
+}
+
+[data-theme="dark"] {
+    --color-primary: #818cf8;
+    --color-primary-hover: #a5b4fc;
+    --color-primary-light: #1e1b4b;
+    --color-primary-ring: rgba(129, 140, 248, 0.25);
+    --color-text: #e2e8f0;
+    --color-text-muted: #94a3b8;
+    --color-text-help: #94a3b8;
+    --color-border: #334155;
+    --color-border-light: #1e293b;
+    --color-border-table: #334155;
+    --color-bg: #0f172a;
+    --color-bg-hover: #1e293b;
+    --color-bg-body-start: #020617;
+    --color-bg-body-end: #0f172a;
+    --color-bg-forecast-end: #1e1b4b;
+    --color-bg-input: #1e293b;
+    --color-shadow: rgba(0, 0, 0, 0.3);
+}
+
 body {
     margin: 0;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -35,6 +80,102 @@ body {
     display: flex;
     gap: 10px;
 }
+
+.github-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    color: var(--color-primary);
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.github-link:hover {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary-hover);
+}
+
+.github-link svg {
+    width: 24px;
+    height: 24px;
+}
+
+.secondary-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: var(--color-primary);
+    text-decoration: none;
+    background: var(--color-bg);
+    transition: all 0.2s;
+    font-size: 0.95rem;
+}
+
+.secondary-link:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--color-primary-hover);
+}
+
+.toggle {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+button {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: var(--font-base);
+}
+
+button:hover {
+    background: var(--color-primary-hover);
+}
+
+/* === Theme Toggle === */
+.theme-toggle {
+    background: none;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.theme-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+
 
 .button {
     background: #4f46e5;

@@ -4,12 +4,19 @@ import { Helpers } from "../scripts/helper.js";
 import TableSorter from "../scripts/table-sorter.js";
 
 const STORAGE_KEY = 'historicSalaryState';
+const THEME_KEY = 'pensionCalculatorTheme';
 const CONTRIBUTION_RATE = 0.0232;
+
+const DOM_IDS = Object.freeze({
+    themeToggle: 'theme-toggle'
+});
 
 class HistoricSalaryUI {
     constructor() {
         this.addedTableId = 'added-table';
+        this.breakdownTableId = 'breakdown-table';
 
+        this.themeToggle = document.getElementById(DOM_IDS.themeToggle);
         this.salaryTableBody = document.querySelector('#salary-table tbody');
         this.addedTableBody = document.querySelector('#added-table tbody');
         this.breakdownBody = document.querySelector('#breakdown-table tbody');
@@ -20,11 +27,13 @@ class HistoricSalaryUI {
         this.totalSalaryPension = document.getElementById('total-salary-pension');
         this.totalAddedPension = document.getElementById('total-added-pension');
         this.totalCombined = document.getElementById('total-combined');
+        this.inflationInfo = document.getElementById('inflation-info');
 
-        this.currentYearInput = document.getElementById('current-year');
-        this.currentYearInputInfo = document.getElementById('current-year-info');
+        this.exportBtn = document.getElementById('exportBtn');
+        this.importBtn = document.getElementById('importBtn');
+        this.importFile = document.getElementById('importFile');
+
         this.dobInput = document.getElementById('dob');
-
 
         this.addedPension = new AddedPension();
 
@@ -34,13 +43,18 @@ class HistoricSalaryUI {
         this.salaryTableBody.addEventListener('click', this.handleRemoveRow.bind(this));
         this.addedTableBody.addEventListener('input', this.handleInput.bind(this));
         this.addedTableBody.addEventListener('click', this.handleRemoveRow.bind(this));
+        this.exportBtn.addEventListener('click', this.handleExport.bind(this));
 
-        this.currentYearInput.addEventListener('input', this.handleInput.bind(this));
+        this.importBtn.addEventListener('click', () => this.importFile.click());
+        this.importFile.addEventListener('change', this.handleImportFile.bind(this));
+
         this.dobInput.addEventListener('input', this.handleInput.bind(this));
+        this.themeToggle.addEventListener("click", this.handleThemeToggle.bind(this));
 
-        const currentYearMax = Math.max(...Object.keys(cpiSeptember).map(Number));
-        this.currentYearInput.max = currentYearMax;
-        this.currentYearInputInfo.textContent = `No inflation figures for ${currentYearMax + 1} and beyond`;
+        const inflationMax = Math.max(...Object.keys(cpiSeptember).map(Number));
+        this.inflationInfo.textContent = `No inflation figures for ${inflationMax + 1} and beyond`;
+
+        this.loadTheme();
 
         this.loadState();
         this.update();
@@ -48,9 +62,27 @@ class HistoricSalaryUI {
         this.addTableSorting();
     }
 
+    loadTheme() {
+        const saved = localStorage.getItem(this.THEME_KEY);
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = saved ?? (prefersDark ? "dark" : "light");
+
+        document.documentElement.setAttribute("data-theme", theme);
+    }
+
+
+    handleThemeToggle() {
+        const current = document.documentElement.getAttribute("data-theme");
+        const next = current === "dark" ? "light" : "dark";
+
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem(this.THEME_KEY, next);
+    }
+
+
     addTableSorting() {
         document.addEventListener('DOMContentLoaded', () => {
-            const myTableSorter = new TableSorter(this.addedTableId, {
+            new TableSorter(this.addedTableId, {
                 // Define which columns are sortable.
                 // Index 0 = Year, Index 1 = Actuary, Index 4 = Added Pension
                 columns: {
@@ -65,6 +97,39 @@ class HistoricSalaryUI {
                 }
             });
         });
+    }
+
+    handleExport() {
+        this.exportState();
+    }
+
+    handleImportFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const parsedState = JSON.parse(event.target.result);
+
+                // Save it to localStorage so your normal loadState() can pick it up
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(parsedState));
+
+                // Trigger your existing load method
+                this.loadState();
+
+                alert('Settings imported successfully!');
+            } catch (err) {
+                alert('Invalid file format. Please upload a valid JSON backup.');
+                console.error(err);
+            }
+        };
+
+        // Read the file as text
+        reader.readAsText(file);
+
+        // Reset the input so they can import the same file again if needed
+        e.target.value = '';
     }
 
     handleAddSalaryRow(event) {
@@ -144,8 +209,9 @@ class HistoricSalaryUI {
     }
 
     getSettings() {
-        const currentYear = Number(this.currentYearInput.value) || 2024;
+        // const currentYear = Number(this.currentYearInput.value) || 2024;
         const dob = Temporal.PlainDate.from(this.dobInput.value || "19800101");
+        const currentYear = Helpers.getCurrentYear();
         return {
             currentYear,
             dob
@@ -244,9 +310,7 @@ class HistoricSalaryUI {
         this.breakdownBody.innerHTML = '';
         let pensionTotal = 0;
         let salaryPensionTotal = 0;
-
         let apTotalPrevious = 0;
-        let openingAp = 0;
 
         let i = 0;
         for (const row of rows) {
@@ -286,6 +350,32 @@ class HistoricSalaryUI {
 
             i++;
         }
+
+        new TableSorter(this.breakdownTableId, {
+            searchable: true,
+            searchPlaceholder: 'Search years, age...',
+            columns: {
+                0: { sortable: true, type: 'number' },
+                1: { sortable: true, type: 'number' },
+                2: { sortable: true, type: 'number' },
+                3: { sortable: true, type: 'number' },
+                4: { sortable: true, type: 'number' },
+                5: { sortable: true, type: 'number' },
+                6: { sortable: true, type: 'number' },
+                7: { sortable: true, type: 'number' },
+                8: { sortable: true, type: 'number' },
+                9: { sortable: true, type: 'number' },
+                10: { sortable: true, type: 'number' },
+                11: { sortable: true, type: 'number' },
+                12: { sortable: true, type: 'number' },
+                13: { sortable: true, type: 'number' },
+
+            },
+            defaultSort: {
+                index: 0,
+                direction: 'asc'
+            }
+        });
     }
 
     formatCurrency(value) {
@@ -312,10 +402,6 @@ class HistoricSalaryUI {
         try {
             const state = JSON.parse(saved);
             if (state.settings) {
-                let currentYear = Number(state.settings.currentYear)
-                if (Number.isInteger(currentYear))
-                    this.currentYearInput.value = Math.min(currentYear, Number(this.currentYearInput.max));
-
                 this.dobInput.value = state.settings.dob ?? this.dobInput.value;
             }
             if (Array.isArray(state.salaryRows)) {
@@ -328,6 +414,40 @@ class HistoricSalaryUI {
             }
         } catch (error) {
             console.warn('Failed to load historic salary state', error);
+        }
+    }
+
+    exportState() {
+        // 1. Grab the latest state directly from localStorage
+        const saved = localStorage.getItem(STORAGE_KEY);
+
+        if (!saved) {
+            alert('No settings found to export.');
+            return;
+        }
+
+        // 2. We parse and re-stringify with formatting (null, 2) 
+        //    so the downloaded file is pretty-printed and human-readable.
+        try {
+            const state = JSON.parse(saved);
+            const prettyJsonString = JSON.stringify(state, null, 2);
+
+            // 3. Create the file and trigger download
+            const blob = new Blob([prettyJsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            const dateStr = new Date().toISOString().split('T')[0];
+            a.download = `pension-settings-${dateStr}.json`;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Failed to export state', error);
+            alert('There was an error generating the export file.');
         }
     }
 }

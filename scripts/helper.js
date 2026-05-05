@@ -111,7 +111,7 @@ export class Helpers {
             const cpiForSchemeStartYear = cpiSeptember[schemeStartYear];
             const cpiForPreviousYear = cpiSeptember[schemeStartYear - 1];
             const cpiFactor = cpiForSchemeStartYear / cpiForPreviousYear;
-            value = value * cpiFactor;
+            value = Number.isNaN(cpiFactor) ? value : value * cpiFactor;
             schemeStartYear++;
         }
 
@@ -127,7 +127,7 @@ export class Helpers {
         const cpiForSchemeStartYear = cpiSeptember[year];
         const cpiForPreviousYear = cpiSeptember[year - 1];
         const cpiFactor = cpiForSchemeStartYear / cpiForPreviousYear;
-        value = value * cpiFactor;
+        value = Number.isNaN(cpiFactor) ? value : value * cpiFactor;
         return value;
     }
 
@@ -139,6 +139,9 @@ export class Helpers {
     static getSingleYearCpi(year) {
         const cpiForSchemeStartYear = cpiSeptember[year];
         const cpiForPreviousYear = cpiSeptember[year - 1];
+        if (Number.isNaN(cpiForSchemeStartYear / cpiForPreviousYear))
+            return 0;
+
         const cpiFactor = ((cpiForSchemeStartYear / cpiForPreviousYear) - 1) * 100;
         return cpiFactor;
     }
