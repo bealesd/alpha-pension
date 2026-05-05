@@ -1,11 +1,15 @@
 ﻿import { AddedPension } from "../scripts/added-pension.js";
+import { cpiSeptember } from "../scripts/cpi-september.js";
 import { Helpers } from "../scripts/helper.js";
+import TableSorter from "../scripts/table-sorter.js";
 
 const STORAGE_KEY = 'historicSalaryState';
 const CONTRIBUTION_RATE = 0.0232;
 
 class HistoricSalaryUI {
     constructor() {
+        this.addedTableId = 'added-table';
+
         this.salaryTableBody = document.querySelector('#salary-table tbody');
         this.addedTableBody = document.querySelector('#added-table tbody');
         this.breakdownBody = document.querySelector('#breakdown-table tbody');
@@ -18,6 +22,7 @@ class HistoricSalaryUI {
         this.totalCombined = document.getElementById('total-combined');
 
         this.currentYearInput = document.getElementById('current-year');
+        this.currentYearInputInfo = document.getElementById('current-year-info');
         this.dobInput = document.getElementById('dob');
 
 
@@ -33,8 +38,33 @@ class HistoricSalaryUI {
         this.currentYearInput.addEventListener('input', this.handleInput.bind(this));
         this.dobInput.addEventListener('input', this.handleInput.bind(this));
 
+        const currentYearMax = Math.max(...Object.keys(cpiSeptember).map(Number));
+        this.currentYearInput.max = currentYearMax;
+        this.currentYearInputInfo.textContent = `No inflation figures for ${currentYearMax + 1} and beyond`;
+
         this.loadState();
         this.update();
+
+        this.addTableSorting();
+    }
+
+    addTableSorting() {
+        document.addEventListener('DOMContentLoaded', () => {
+            const myTableSorter = new TableSorter(this.addedTableId, {
+                // Define which columns are sortable.
+                // Index 0 = Year, Index 1 = Actuary, Index 4 = Added Pension
+                columns: {
+                    0: { sortable: true, type: 'number' },
+                    1: { sortable: true, type: 'string' },
+                    4: { sortable: true, type: 'number' }
+                },
+                // Set the default sort on page load (sort by Year, Ascending)
+                defaultSort: {
+                    index: 0,
+                    direction: 'asc'
+                }
+            });
+        });
     }
 
     handleAddSalaryRow(event) {
@@ -282,7 +312,10 @@ class HistoricSalaryUI {
         try {
             const state = JSON.parse(saved);
             if (state.settings) {
-                this.currentYearInput.value = state.settings.currentYear ?? this.currentYearInput.value;
+                let currentYear = Number(state.settings.currentYear)
+                if (Number.isInteger(currentYear))
+                    this.currentYearInput.value = Math.min(currentYear, Number(this.currentYearInput.max));
+
                 this.dobInput.value = state.settings.dob ?? this.dobInput.value;
             }
             if (Array.isArray(state.salaryRows)) {
