@@ -15,6 +15,7 @@ class HistoricSalaryUI {
     constructor() {
         this.addedTableId = 'added-table';
         this.breakdownTableId = 'breakdown-table';
+        this.salaryTableId = 'salary-table';
 
         this.themeToggle = document.getElementById(DOM_IDS.themeToggle);
         this.salaryTableBody = document.querySelector('#salary-table tbody');
@@ -52,51 +53,31 @@ class HistoricSalaryUI {
         this.themeToggle.addEventListener("click", this.handleThemeToggle.bind(this));
 
         const inflationMax = Math.max(...Object.keys(cpiSeptember).map(Number));
-        this.inflationInfo.textContent = `No inflation figures for ${inflationMax + 1} and beyond`;
+        this.inflationInfo.textContent = `The calculator has no historical inflation figures for September ${inflationMax + 1} and beyond. Any calculation beyond ${inflationMax + 1} will not be adjusted for inflation.`;
 
         this.loadTheme();
 
         this.loadState();
         this.update();
 
-        this.addTableSorting();
+        this.addTableSortingForAp();
+        this.addTableSortingForSalary();
     }
 
     loadTheme() {
-        const saved = localStorage.getItem(this.THEME_KEY);
+        const saved = localStorage.getItem(THEME_KEY);
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
         const theme = saved ?? (prefersDark ? "dark" : "light");
 
         document.documentElement.setAttribute("data-theme", theme);
     }
 
-
     handleThemeToggle() {
         const current = document.documentElement.getAttribute("data-theme");
         const next = current === "dark" ? "light" : "dark";
 
         document.documentElement.setAttribute("data-theme", next);
-        localStorage.setItem(this.THEME_KEY, next);
-    }
-
-
-    addTableSorting() {
-        document.addEventListener('DOMContentLoaded', () => {
-            new TableSorter(this.addedTableId, {
-                // Define which columns are sortable.
-                // Index 0 = Year, Index 1 = Actuary, Index 4 = Added Pension
-                columns: {
-                    0: { sortable: true, type: 'number' },
-                    1: { sortable: true, type: 'string' },
-                    4: { sortable: true, type: 'number' }
-                },
-                // Set the default sort on page load (sort by Year, Ascending)
-                defaultSort: {
-                    index: 0,
-                    direction: 'asc'
-                }
-            });
-        });
+        localStorage.setItem(THEME_KEY, next);
     }
 
     handleExport() {
@@ -152,6 +133,39 @@ class HistoricSalaryUI {
 
     handleInput() {
         this.update();
+    }
+
+    addTableSortingForAp() {
+        new TableSorter(this.addedTableId, {
+            // Define which columns are sortable.
+            // Index 0 = Year, Index 1 = Actuary, Index 4 = Added Pension
+            columns: {
+                0: { sortable: true, type: 'number' },
+                1: { sortable: true, type: 'string' },
+                4: { sortable: true, type: 'number' }
+            },
+            // Set the default sort on page load (sort by Year, Ascending)
+            defaultSort: {
+                index: 0,
+                direction: 'asc'
+            }
+        });
+    }
+
+    addTableSortingForSalary() {
+        new TableSorter(this.salaryTableId, {
+            // Define which columns are sortable.
+            // Index 0 = Year, Index 1 = Actuary, Index 4 = Added Pension
+            columns: {
+                0: { sortable: true, type: 'number' },
+                1: { sortable: true, type: 'number' },
+            },
+            // Set the default sort on page load (sort by Year, Ascending)
+            defaultSort: {
+                index: 0,
+                direction: 'asc'
+            }
+        });
     }
 
     addSalaryRow(data) {

@@ -42,56 +42,65 @@
             </div>
         </div>
 
-        <!-- Wrap the contents in a form -->
-        <form id="pension-form">
-            <div class="grid">
-                <div class="field">
-                    <label>DOB</label>
-                   <input type="date" id="dob" value="1980-01-01" min="1977-04-06" max="2020-01-01" required>
+        <section class="section">
+            <!-- Wrap the contents in a form -->
+            <form id="pension-form">
+                <div class="grid">
+                    <div class="field">
+                        <label>DOB</label>
+                        <input type="date" id="dob" value="1980-01-01" min="1977-04-06" max="2020-01-01" required>
+                    </div>
+
+                    <div class="field">
+                        <label>Retirement Age</label>
+                        <input type="number" id="retirement-age" value="68" min="55" max="68" step="1" required>
+                        <span class="help-text">When you stop working.</span>
+                    </div>
+
+                    <div class="field">
+                        <label>Pension Start Age</label>
+                        <input type="number" id="pension-start-age" value="68" step="1" min="55" required>
+                        <span class="help-text">Age you want to receive your pension.</span>
+                    </div>
+
+                    <div class="field"> <label>Salary</label>
+                        <input type="number" id="salary" value="40000" min="27000" max="1000000" step="1"
+                            data-step="500" required>
+                        <span class="help-text">Current annual salary.</span>
+                    </div>
+
+                    <div class="field">
+                        <label>Accrued</label>
+                        <input type="number" id="accrued" value="5000" step="1" data-step="500" required>
+                        <span class="help-text">Pension already accrued.</span>
+                    </div>
+
+                    <div class="field">
+                        <label>CPI %</label>
+                        <input type="number" id="cpi" value="0" min="0" max="50" step="0.1" required>
+                        <span class="help-text">Yearly inflation.</span>
+                    </div>
                 </div>
 
-                <div class="field">
-                    <label>Retirement Age</label>
-                    <input type="number" id="retirement-age" value="68" min="55" max="68" step="1" required>
-                    <span class="help-text">When you stop working.</span>
-                </div>
+                <br>
 
-                <div class="field">
-                    <label>Pension Start Age</label>
-                    <input type="number" id="pension-start-age" value="68" step="1" min="55" required>
-                    <span class="help-text">Age you want to receive your pension.</span>
-                </div>
+                <table id="tbl">
+                    <tbody></tbody>
+                </table>
+            </form>
 
-                <div class="field"> <label>Salary</label>
-                    <input type="number" id="salary" value="40000" min="27000" max="1000000" step="1" data-step="500"
-                        required>
-                    <span class="help-text">Current annual salary.</span>
-                </div>
+            <button id="add-added-pension-row">Add</button>
+            <button id="reset-form" type="button">Reset Data</button>
+        </section>
+        <!-- <div class="pension-forecast">£ <span id="pension-forecast-value">0</span></div> -->
 
-                <div class="field">
-                    <label>Accrued</label>
-                    <input type="number" id="accrued" value="5000" step="1" data-step="500" required>
-                    <span class="help-text">Pension already accrued.</span>
-                </div>
-
-                <div class="field">
-                    <label>CPI %</label>
-                    <input type="number" id="cpi" value="0" min="0" max="50" step="0.1" required>
-                    <span class="help-text">Yearly inflation.</span>
-                </div>
+        <section class="summary">
+            <div class="summary-card pension-forecast">
+                <span class="summary-label">Pension Salary</span>
+                <strong id="pension-forecast-value">£0</strong>
             </div>
+        </section>
 
-            <br>
-
-            <table id="tbl">
-                <tbody></tbody>
-            </table>
-        </form>
-        
-        <button id="add-added-pension-row">Add</button>
-        <button id="reset-form" type="button">Reset Data</button>
-
-        <div class="pension-forecast">£ <span id="pension-forecast-value">0</span></div>
     </div>
 
     <template id="added-pension-row">

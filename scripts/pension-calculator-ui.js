@@ -63,8 +63,6 @@ class PensionCalculatorUI {
         this.themeToggle.addEventListener("click", this.handleThemeToggle.bind(this));
     }
 
-    // === Theme ===
-
     loadTheme() {
         const saved = localStorage.getItem(this.THEME_KEY);
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -256,7 +254,7 @@ class PensionCalculatorUI {
             rows: parsedRows
         };
 
-        this.pensionForecastElement.textContent = new TotalPension().calculate(memberData).toFixed(0);
+        this.pensionForecastElement.textContent = `£${new TotalPension().calculate(memberData).toFixed(0)}`;
     }
 }
 

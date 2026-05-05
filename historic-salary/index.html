@@ -62,31 +62,15 @@
             </div>
         </div>
 
-
-        <!-- <header class="header">
-            <div>
-                <h1>Historic Salary Pension Explorer</h1>
-                <p class="intro">Enter annual salary history and added pension contributions for each year. Added
-                    pension period (year/month) applies only to added contributions. You can add multiple added pension
-                    entries for the same year.</p>
-            </div>
-            <div class="header-actions">
-                <a href="../index.html" class="button secondary">Main calculator</a>
-            </div>
-        </header> -->
-
-
-
+        <section class="section">
+            <p class="intro" id="inflation-info"></p>
+        </section>
 
         <section class="section">
             <div class="section-heading">
                 <h2>Assumptions</h2>
             </div>
             <div class="settings-grid">
-
-                <div class="field">
-                    <label id="inflation-info"></label>
-                </div>
 
                 <div class="field">
                     <label>DOB</label>
@@ -99,14 +83,12 @@
         <section class="section">
             <div class="section-heading">
                 <h2>Salary history</h2>
-                <button id="add-salary-row" class="button">Add year</button>
             </div>
             <div class="table-wrapper">
                 <table id="salary-table">
                     <thead>
                         <tr>
                             <th>Start Year April</th>
-                            <!-- <th>End Year March</th> -->
                             <th>Salary</th>
                             <th></th>
                         </tr>
@@ -114,12 +96,12 @@
                     <tbody></tbody>
                 </table>
             </div>
+            <button id="add-salary-row" class="button">Add year</button>
         </section>
 
         <section class="section">
             <div class="section-heading">
                 <h2>Added pension contributions</h2>
-                <button id="add-added-row" class="button">Add contribution</button>
             </div>
             <div class="table-wrapper">
                 <table id="added-table">
@@ -136,6 +118,7 @@
                     <tbody></tbody>
                 </table>
             </div>
+            <button id="add-added-row" class="button">Add contribution</button>
         </section>
 
         <section class="summary">
@@ -195,7 +178,9 @@
         <tr>
             <td><input type="number" class="year" value="2024" min="2016" max="2025"></td>
             <td><input type="number" class="salary" value="40000" min="0" step="100"></td>
-            <td><button type="button" class="button remove-row">Remove</button></td>
+            <td>
+                <button type="button" class="remove-row" title="Remove row">✕</button>
+            </td>
         </tr>
     </template>
 
@@ -223,7 +208,9 @@
                 </select>
             </td>
             <td><input type="number" class="added" value="0" min="0" step="100"></td>
-            <td><button type="button" class="button remove-row">Remove</button></td>
+            <td>
+                <button type="button" class="remove-row" title="Remove row">✕</button>
+            </td>
         </tr>
     </template>
 
