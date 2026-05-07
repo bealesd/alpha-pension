@@ -55,6 +55,12 @@ class HistoricSalaryUI {
         const inflationMax = Math.max(...Object.keys(cpiSeptember).map(Number));
         this.inflationInfo.textContent = `The calculator has no historical inflation figures for September ${inflationMax + 1} and beyond. Any calculation beyond ${inflationMax + 1} will not be adjusted for inflation.`;
 
+        this.currentYear = Helpers.getCurrentYear();
+        document.querySelectorAll('[data-bind="current-year"]').forEach(el => {
+            el.textContent = `${this.currentYear}`.slice(-2);
+        });
+
+
         this.loadTheme();
 
         this.loadState();
@@ -223,17 +229,14 @@ class HistoricSalaryUI {
     }
 
     getSettings() {
-        // const currentYear = Number(this.currentYearInput.value) || 2024;
         const dob = Temporal.PlainDate.from(this.dobInput.value || "19800101");
-        const currentYear = Helpers.getCurrentYear();
         return {
-            currentYear,
             dob
         };
     }
 
     getAgeForRow(row, settings) {
-        return settings.currentAge - (settings.currentYear - row.year);
+        return settings.currentAge - (this.currentYear - row.year);
     }
 
     estimateSalaryPension(row) {
@@ -271,7 +274,7 @@ class HistoricSalaryUI {
 
             // Calculate Salary Pension
             const salaryVal = salaryRow ? this.estimateSalaryPension(salaryRow) : 0;
-            const salaryValAdj = salaryRow ? Helpers.getCpiAdjustedValue(schemeDates.schemeStartDate.year, salaryVal, settings.currentYear) : 0;
+            const salaryValAdj = salaryRow ? Helpers.getCpiAdjustedValue(schemeDates.schemeStartDate.year, salaryVal, this.currentYear) : 0;
 
             // Calculate Added Pension (Logic now lives in one place)
             let addedVal = 0;
@@ -280,7 +283,7 @@ class HistoricSalaryUI {
             addedForYear.forEach(row => {
                 const amount = this.estimateAddedPension(row, settings.dob, schemeDates.schemeStartDate.year);
                 addedVal += amount;
-                addedValAdj += Helpers.getCpiAdjustedValue(schemeDates.schemeStartDate.year, amount, settings.currentYear);
+                addedValAdj += Helpers.getCpiAdjustedValue(schemeDates.schemeStartDate.year, amount, this.currentYear);
             });
 
             totalSalaryPension += salaryValAdj;
@@ -323,14 +326,29 @@ class HistoricSalaryUI {
     renderBreakdown(rows) {
         this.breakdownBody.innerHTML = '';
         let pensionTotal = 0;
-        let salaryPensionTotal = 0;
+        let salaryPensionTotalAdjusted = 0;
         let apTotalPrevious = 0;
+
+        let salaryTotalPrevious = 0;
 
         let i = 0;
         for (const row of rows) {
             pensionTotal += row.totalValue;
-            salaryPensionTotal += row.salaryPensionAdjusted;
 
+            //SP
+            // salaryPensionAdjusted is the value adjusted to the current year 
+            salaryPensionTotalAdjusted += row.salaryPensionAdjusted;
+
+            const openingSp = salaryTotalPrevious;
+            const adjustedTotalFromLastYearSp = Helpers.getSingleYearCpiAdjustedValue(row.year, salaryTotalPrevious);
+            const salaryPensionAdjustedFromLastYearSp = Helpers.getSingleYearCpiAdjustedValue(row.year, row.salaryPensionUnadjusted);
+
+            const increaseInInflationFromLastYearSp = (adjustedTotalFromLastYearSp - salaryTotalPrevious) + (salaryPensionAdjustedFromLastYearSp - row.salaryPensionUnadjusted);
+
+            salaryTotalPrevious = adjustedTotalFromLastYearSp + salaryPensionAdjustedFromLastYearSp;
+            const closingSp = salaryTotalPrevious;
+
+            //AP
             let openingAp = apTotalPrevious;
             const cpi = Helpers.getSingleYearCpi(row.year);
 
@@ -340,20 +358,29 @@ class HistoricSalaryUI {
             const increaseInOpeningApThroughInflation = adjustedTotalAp - unadjustedTotalAp;
             apTotalPrevious = adjustedTotalAp;
 
-            const tr = document.createElement('tr');
+            const startYearLastTwo = `${row.year}`.slice(-2);
+            const endYearLastTwo = `${row.year + 1}`.slice(-2);
 
+            //Render
+            const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${row.year}</td>
+                <td>${startYearLastTwo}/${endYearLastTwo}</td>
                 <td>${row.age}</td>
-                <td>${this.formatCurrency(row.salary)}</td>
+
+                <td>${this.formatCurrency(openingSp)}</td>
+                <td>${this.formatCurrency(row.salary)}</td>     
                 <td>${this.formatCurrency(row.salaryPensionUnadjusted)}</td>
+                <td>${cpi.toFixed(1)}</td>
+                <td>${this.formatCurrency(increaseInInflationFromLastYearSp)}</td>
+                <td>${this.formatCurrency(closingSp)}</td> 
+
                 <td>${this.formatCurrency(row.salaryPensionAdjusted)}</td>       
-                <td>${this.formatCurrency(salaryPensionTotal)}</td>   
+                <td>${this.formatCurrency(salaryPensionTotalAdjusted)}</td>   
 
                 <td>${this.formatCurrency(openingAp)}</td>     
                 <td>${this.formatCurrency(row.ap)}</td>
                 <td>${this.formatCurrency(row.addedPensionUnadjusted)}</td>
-                <td>${cpi.toFixed(1)}</td>
+                
                 <td>${this.formatCurrency(increaseInOpeningApThroughInflation)}</td>
                 <td>${this.formatCurrency(apTotalPrevious)}</td>
 

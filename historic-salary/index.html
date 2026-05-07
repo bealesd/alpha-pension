@@ -146,26 +146,37 @@
 
         <section class="section">
             <h2>Year-by-year breakdown</h2>
+
+            <div class="table-legend">
+                <span class="legend-item sp-color"><strong>SP:</strong> Salary Pension</span>
+                <span class="legend-item ap-color"><strong>AP:</strong> Added Pension</span>
+            </div>
+
             <div class="table-wrapper">
                 <table id="breakdown-table">
                     <thead>
                         <tr>
-                            <th>Start Year April</th>
-                            <th>Age</th>
-                            <th>Salary</th>
-                            <th>Salary Pension</th>
-                            <th>Salary Pension Adj</th>
-                            <th>Total Salary Pension</th>
+                            <th class="info">Year</th>
+                            <th class="info">Age</th>
 
-                            <th>Opening AP</th>
-                            <th>AP Added This Year</th>
-                            <th>Added pension</th>
-                            <th>Inflation</th>
-                            <th>AP Adjustment</th>
-                            <th>Closing AP</th>
+                            <th class="sp-info">Open SP</th>
+                            <th class="sp-info">Salary</th>
+                            <th class="sp-info">SP</th>
+                            <th class="sp-info">CPI</th>
+                            <th class="sp-info">SP Rise</th>
+                            <th class="sp-info">Close SP</th>
 
-                            <th>Pension Increase</th>
-                            <th>Total Pension</th>
+                            <th class="sp-info-extra">SP <span data-bind="current-year"></span></th>
+                            <th class="sp-info-extra">Close SP <span data-bind="current-year"></span></th>
+
+                            <th class="ap-info">Open AP</th>
+                            <th class="ap-info">AP Added This Year</th>
+                            <th class="ap-info">AP</th>
+                            <th class="ap-info">AP Adjustment</th>
+                            <th class="ap-info">Close AP</th>
+
+                            <th class="info">Pension Increase</th>
+                            <th class="info">Total Pension</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
