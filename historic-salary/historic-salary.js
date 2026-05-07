@@ -324,6 +324,9 @@ class HistoricSalaryUI {
     }
 
     renderBreakdown(rows) {
+        // tracking another pension in completely the wrong place
+        console.log(Helpers.getCpiAdjustedValue(2014, 1675, this.currentYear));
+
         this.breakdownBody.innerHTML = '';
         let pensionTotal = 0;
         let salaryPensionTotalAdjusted = 0;
