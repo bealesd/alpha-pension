@@ -212,16 +212,13 @@ class HistoricSalaryUI {
     getAddedRows() {
         return [...this.addedTableBody.querySelectorAll('tr')]
             .map(row => {
-                const period = row.querySelector('.period').value;
-                const added = Number(row.querySelector('.added').value) || 0;
-
                 return {
                     year: Number(row.querySelector('.year').value) || 0,
                     actuaryVersion: row.querySelector('.actuary-version').value,
                     type: row.querySelector('.type').value,
-                    period,
-                    added,
-                    annualAdded: period === 'month' ? added * 12 : added
+                    period: row.querySelector('.period').value,
+                    //purchased
+                    added: Number(row.querySelector('.added').value) || 0
                 };
             })
             .filter(row => row.year > 0)
@@ -243,9 +240,9 @@ class HistoricSalaryUI {
         return row.salary * CONTRIBUTION_RATE;
     }
 
-    estimateAddedPension(row, dob, schemaStartYear) {
+    estimateAddedPension(purchased, row, dob, schemaStartYear) {
         //totalContributionsForPeriod, type, dob, schemaStartYear
-        return this.addedPension.calculateAddedPensionForYearForGivenAge(row.annualAdded, row.type, dob, schemaStartYear, row.actuaryVersion);
+        return this.addedPension.calculateAddedPensionForYearForGivenAge(row.added, row.type, dob, schemaStartYear, row.actuaryVersion);
     }
 
     update() {
@@ -273,39 +270,50 @@ class HistoricSalaryUI {
             const age = Helpers.getAgeAtDate(settings.dob, schemeDates.schemeStartDate);
 
             // Calculate Salary Pension
-            const salaryVal = salaryRow ? this.estimateSalaryPension(salaryRow) : 0;
-            const salaryValAdj = salaryRow ? Helpers.getCpiAdjustedValue(schemeDates.schemeStartDate.year, salaryVal, this.currentYear) : 0;
+            const contributionYearUnadjustedSp = salaryRow ? this.estimateSalaryPension(salaryRow) : 0;
+            const contributionYearAdjustedToPresentYearSp = salaryRow ? Helpers.getCpiAdjustedValue(schemeDates.schemeStartDate.year, contributionYearUnadjustedSp, this.currentYear) : 0;
 
             // Calculate Added Pension (Logic now lives in one place)
-            let addedVal = 0;
-            let addedValAdj = 0;
+            let contributionYearUnadjustedAp = 0;
+            let contributionYearAdjustedToPresentYearAp = 0;
 
+            let totalPurchasedAp = 0;
+            let totalPurchasedSelfAp = 0
+            let totalPurchasedDependantAp = 0
             addedForYear.forEach(row => {
-                const amount = this.estimateAddedPension(row, settings.dob, schemeDates.schemeStartDate.year);
-                addedVal += amount;
-                addedValAdj += Helpers.getCpiAdjustedValue(schemeDates.schemeStartDate.year, amount, this.currentYear);
+                const purchasedAp = row.period === 'month' ? row.added * 12 : row.added;
+                totalPurchasedAp += purchasedAp;
+                if (row.type === 'self')
+                    totalPurchasedSelfAp += purchasedAp;
+                else
+                    totalPurchasedDependantAp += purchasedAp;
+                const amount = this.estimateAddedPension(purchasedAp, row, settings.dob, schemeDates.schemeStartDate.year);
+                contributionYearUnadjustedAp += amount;
+                contributionYearAdjustedToPresentYearAp += Helpers.getCpiAdjustedValue(schemeDates.schemeStartDate.year, amount, this.currentYear);
             });
 
-            totalSalaryPension += salaryValAdj;
-            totalAddedPension += addedValAdj;
+            totalSalaryPension += contributionYearAdjustedToPresentYearSp;
+            totalAddedPension += contributionYearAdjustedToPresentYearAp;
 
             return {
                 year,
                 age,
                 salary: salaryRow?.salary || 0,
-                ap: addedForYear.reduce((sum, r) => sum + r.annualAdded, 0),
-                salaryPensionAdjusted: salaryValAdj,
-                salaryPensionUnadjusted: salaryVal,
-                addedPensionAdjusted: addedValAdj,
-                addedPensionUnadjusted: addedVal,
-                totalValue: salaryValAdj + addedValAdj
+                contributionYearUnadjustedSp: contributionYearUnadjustedSp,
+                contributionYearAdjustedToPresentYearSp: contributionYearAdjustedToPresentYearSp,
+                purchasedAp: totalPurchasedAp,
+                purchasedSelfAp: totalPurchasedSelfAp,
+                purchasedDependantAp: totalPurchasedDependantAp,
+                contributionYearUnadjustedAp: contributionYearUnadjustedAp,
+                contributionYearAdjustedToPresentYearAp: contributionYearAdjustedToPresentYearAp,
+                contributionYearPensionAdjustedToPresentYear: contributionYearAdjustedToPresentYearSp + contributionYearAdjustedToPresentYearAp
             };
         });
 
         // 3. Update UI and State
         this.updateUI({
             totalSalary: salaryRows.reduce((sum, r) => sum + r.salary, 0),
-            totalAdded: addedRows.reduce((sum, r) => sum + r.annualAdded, 0),
+            totalAdded: addedRows.reduce((sum, r) => sum + r.added, 0),
             salaryPension: totalSalaryPension,
             addedPension: totalAddedPension
         });
@@ -328,43 +336,43 @@ class HistoricSalaryUI {
         console.log(Helpers.getCpiAdjustedValue(2014, 1675, this.currentYear));
 
         this.breakdownBody.innerHTML = '';
-        let pensionTotal = 0;
-        let salaryPensionTotalAdjusted = 0;
-        let apTotalPrevious = 0;
 
-        let salaryTotalPrevious = 0;
+        let cumulativePensionAdjustedToPresentYear = 0;
+
+        let closingAdjustedToPresentYearSp = 0;
+        let currentSp = 0;
+
+        let apTotalPrevious = 0;
 
         let i = 0;
         for (const row of rows) {
-            pensionTotal += row.totalValue;
+            cumulativePensionAdjustedToPresentYear += row.contributionYearPensionAdjustedToPresentYear;
 
-            //SP
-            // salaryPensionAdjusted is the value adjusted to the current year 
-            salaryPensionTotalAdjusted += row.salaryPensionAdjusted;
+            // SP
+            closingAdjustedToPresentYearSp += row.contributionYearAdjustedToPresentYearSp;
 
-            const openingSp = salaryTotalPrevious;
-            const adjustedTotalFromLastYearSp = Helpers.getSingleYearCpiAdjustedValue(row.year, salaryTotalPrevious);
-            const salaryPensionAdjustedFromLastYearSp = Helpers.getSingleYearCpiAdjustedValue(row.year, row.salaryPensionUnadjusted);
+            const openingSp = currentSp;
+            const openingAdjustedToContributionYearSp = Helpers.getSingleYearCpiAdjustedValue(row.year, currentSp);
+            const addedAdjustedToContributionYearSp = Helpers.getSingleYearCpiAdjustedValue(row.year, row.contributionYearUnadjustedSp);
+            const inflationChangeInContributionYearSp = (openingAdjustedToContributionYearSp - currentSp) + (addedAdjustedToContributionYearSp - row.contributionYearUnadjustedSp);
 
-            const increaseInInflationFromLastYearSp = (adjustedTotalFromLastYearSp - salaryTotalPrevious) + (salaryPensionAdjustedFromLastYearSp - row.salaryPensionUnadjusted);
+            currentSp = openingAdjustedToContributionYearSp + addedAdjustedToContributionYearSp;
+            const closingSp = currentSp;
 
-            salaryTotalPrevious = adjustedTotalFromLastYearSp + salaryPensionAdjustedFromLastYearSp;
-            const closingSp = salaryTotalPrevious;
-
-            //AP
-            let openingAp = apTotalPrevious;
+            // AP
+            const openingAp = apTotalPrevious;
             const cpi = Helpers.getSingleYearCpi(row.year);
 
-            const unadjustedTotalAp = row.addedPensionUnadjusted + apTotalPrevious;
+            const unadjustedTotalAp = row.contributionYearUnadjustedAp + apTotalPrevious;
             const adjustedTotalAp = Helpers.getSingleYearCpiAdjustedValue(row.year, unadjustedTotalAp);
 
-            const increaseInOpeningApThroughInflation = adjustedTotalAp - unadjustedTotalAp;
+            const inflationChangeInContributionYearAP = adjustedTotalAp - unadjustedTotalAp;
             apTotalPrevious = adjustedTotalAp;
 
             const startYearLastTwo = `${row.year}`.slice(-2);
             const endYearLastTwo = `${row.year + 1}`.slice(-2);
 
-            //Render
+            // Render
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${startYearLastTwo}/${endYearLastTwo}</td>
@@ -372,23 +380,23 @@ class HistoricSalaryUI {
 
                 <td>${this.formatCurrency(openingSp)}</td>
                 <td>${this.formatCurrency(row.salary)}</td>     
-                <td>${this.formatCurrency(row.salaryPensionUnadjusted)}</td>
+                <td>${this.formatCurrency(row.contributionYearUnadjustedSp)}</td>
                 <td>${cpi.toFixed(1)}</td>
-                <td>${this.formatCurrency(increaseInInflationFromLastYearSp)}</td>
+                <td>${this.formatCurrency(inflationChangeInContributionYearSp)}</td>
                 <td>${this.formatCurrency(closingSp)}</td> 
 
-                <td>${this.formatCurrency(row.salaryPensionAdjusted)}</td>       
-                <td>${this.formatCurrency(salaryPensionTotalAdjusted)}</td>   
+                <td>${this.formatCurrency(row.contributionYearAdjustedToPresentYearSp)}</td>       
+                <td>${this.formatCurrency(closingAdjustedToPresentYearSp)}</td>   
 
                 <td>${this.formatCurrency(openingAp)}</td>     
-                <td>${this.formatCurrency(row.ap)}</td>
-                <td>${this.formatCurrency(row.addedPensionUnadjusted)}</td>
+                <td>${this.formatCurrency(row.purchasedAp)}</td>
+                <td>${this.formatCurrency(row.contributionYearUnadjustedAp)}</td>
                 
-                <td>${this.formatCurrency(increaseInOpeningApThroughInflation)}</td>
+                <td>${this.formatCurrency(inflationChangeInContributionYearAP)}</td>
                 <td>${this.formatCurrency(apTotalPrevious)}</td>
 
-                <td>${this.formatCurrency(row.totalValue)}</td>
-                <td>${this.formatCurrency(pensionTotal)}</td>
+                <td>${this.formatCurrency(row.contributionYearPensionAdjustedToPresentYear)}</td>
+                <td>${this.formatCurrency(cumulativePensionAdjustedToPresentYear)}</td>
             `;
             this.breakdownBody.appendChild(tr);
 
@@ -456,6 +464,7 @@ class HistoricSalaryUI {
                 this.addedTableBody.innerHTML = '';
                 state.addedRows.forEach(row => this.addAddedRow(row));
             }
+            this.update();
         } catch (error) {
             console.warn('Failed to load historic salary state', error);
         }
