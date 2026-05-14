@@ -2,6 +2,7 @@
 import { cpiSeptember } from "../scripts/cpi-september.js";
 import { Helpers } from "../scripts/helper.js";
 import TableSorter from "../scripts/table-sorter.js";
+import { EmployeeContributions } from "../scripts/employee-contributions.js";
 
 const STORAGE_KEY = 'historicSalaryState';
 const THEME_KEY = 'pensionCalculatorTheme';
@@ -25,6 +26,8 @@ class HistoricSalaryUI {
         this.addAddedRowButton = document.getElementById('add-added-row');
         this.totalSalary = document.getElementById('total-salary');
         this.totalAdded = document.getElementById('total-added');
+        this.totalSalaryContributions = document.getElementById('total-salary-contributions');
+        this.totalSalaryPension = document.getElementById('total-salary-pension');
         this.totalSalaryPension = document.getElementById('total-salary-pension');
         this.totalAddedPension = document.getElementById('total-added-pension');
         this.totalCombined = document.getElementById('total-combined');
@@ -291,6 +294,7 @@ class HistoricSalaryUI {
 
         this.updateUI({
             totalSalary: detailedRows.reduce((sum, r) => sum + r.sp.input, 0),
+            totalSalaryContributions: detailedRows.reduce((sum, r) => sum + r.sp.outOfPocketCost, 0),
             totalAdded: detailedRows.reduce((sum, r) => sum + r.ap.input, 0),
             salaryPension: totalSalaryPension,
             addedPension: totalAddedPension
@@ -302,6 +306,7 @@ class HistoricSalaryUI {
 
     updateUI(totals) {
         this.totalSalary.textContent = this.formatCurrency(totals.totalSalary);
+        this.totalSalaryContributions.textContent = this.formatCurrency(totals.totalSalaryContributions);
         this.totalAdded.textContent = this.formatCurrency(totals.totalAdded);
         this.totalSalaryPension.textContent = this.formatCurrency(totals.salaryPension);
         this.totalAddedPension.textContent = this.formatCurrency(totals.addedPension);
@@ -391,6 +396,16 @@ class HistoricSalaryUI {
                 direction: 'asc'
             }
         });
+    }
+
+    getYearlySpSummary(salaryRow, schemeStartDate) {
+        const input = salaryRow ? salaryRow.salary : 0;
+        const unadjusted = salaryRow ? this.estimateSalaryPension(salaryRow) : 0;
+        const adjustedToPresent = Helpers.getCpiAdjustedValue(schemeStartDate.year, unadjusted, this.currentYear);
+
+        const outOfPocketCost = EmployeeContributions.calculateCost(schemeStartDate.year, input);
+
+        return { input, unadjusted, adjustedToPresent, outOfPocketCost };
     }
 
     formatCurrency(value) {
