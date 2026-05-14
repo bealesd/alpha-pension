@@ -339,35 +339,40 @@ class HistoricSalaryUI {
 
         let cumulativePensionAdjustedToPresentYear = 0;
 
-        let closingAdjustedToPresentYearSp = 0;
+        let closingSpAdjustedToPresentYear = 0;
         let currentSp = 0;
 
+        let closingApAdjustedToPresentYear = 0;
         let apTotalPrevious = 0;
 
         let i = 0;
         for (const row of rows) {
+            const cpi = Helpers.getSingleYearCpi(row.year);
+
+            // Total
             cumulativePensionAdjustedToPresentYear += row.contributionYearPensionAdjustedToPresentYear;
 
             // SP
-            closingAdjustedToPresentYearSp += row.contributionYearAdjustedToPresentYearSp;
+            closingSpAdjustedToPresentYear += row.contributionYearAdjustedToPresentYearSp;
 
             const openingSp = currentSp;
-            const openingAdjustedToContributionYearSp = Helpers.getSingleYearCpiAdjustedValue(row.year, currentSp);
-            const addedAdjustedToContributionYearSp = Helpers.getSingleYearCpiAdjustedValue(row.year, row.contributionYearUnadjustedSp);
-            const inflationChangeInContributionYearSp = (openingAdjustedToContributionYearSp - currentSp) + (addedAdjustedToContributionYearSp - row.contributionYearUnadjustedSp);
+            const openingSpAdjustedToContributionYear = Helpers.getSingleYearCpiAdjustedValue(row.year, currentSp);
+            const addedSpAdjustedToContributionYear = Helpers.getSingleYearCpiAdjustedValue(row.year, row.contributionYearUnadjustedSp);
+            const inflationChangeToSpInContributionYear = (openingSpAdjustedToContributionYear - currentSp) + (addedSpAdjustedToContributionYear - row.contributionYearUnadjustedSp);
 
-            currentSp = openingAdjustedToContributionYearSp + addedAdjustedToContributionYearSp;
+            currentSp = openingSpAdjustedToContributionYear + addedSpAdjustedToContributionYear;
             const closingSp = currentSp;
 
             // AP
-            const openingAp = apTotalPrevious;
-            const cpi = Helpers.getSingleYearCpi(row.year);
+            closingApAdjustedToPresentYear += row.contributionYearAdjustedToPresentYearAp;
 
+            const openingAp = apTotalPrevious;
             const unadjustedTotalAp = row.contributionYearUnadjustedAp + apTotalPrevious;
             const adjustedTotalAp = Helpers.getSingleYearCpiAdjustedValue(row.year, unadjustedTotalAp);
-
             const inflationChangeInContributionYearAP = adjustedTotalAp - unadjustedTotalAp;
+
             apTotalPrevious = adjustedTotalAp;
+            const closingAp = apTotalPrevious;
 
             const startYearLastTwo = `${row.year}`.slice(-2);
             const endYearLastTwo = `${row.year + 1}`.slice(-2);
@@ -382,18 +387,21 @@ class HistoricSalaryUI {
                 <td>${this.formatCurrency(row.salary)}</td>     
                 <td>${this.formatCurrency(row.contributionYearUnadjustedSp)}</td>
                 <td>${cpi.toFixed(1)}</td>
-                <td>${this.formatCurrency(inflationChangeInContributionYearSp)}</td>
+                <td>${this.formatCurrency(inflationChangeToSpInContributionYear)}</td>
                 <td>${this.formatCurrency(closingSp)}</td> 
 
                 <td>${this.formatCurrency(row.contributionYearAdjustedToPresentYearSp)}</td>       
-                <td>${this.formatCurrency(closingAdjustedToPresentYearSp)}</td>   
+                <td>${this.formatCurrency(closingSpAdjustedToPresentYear)}</td>   
 
                 <td>${this.formatCurrency(openingAp)}</td>     
                 <td>${this.formatCurrency(row.purchasedAp)}</td>
                 <td>${this.formatCurrency(row.contributionYearUnadjustedAp)}</td>
                 
                 <td>${this.formatCurrency(inflationChangeInContributionYearAP)}</td>
-                <td>${this.formatCurrency(apTotalPrevious)}</td>
+                <td>${this.formatCurrency(closingAp)}</td>
+
+                <td>${this.formatCurrency(row.contributionYearAdjustedToPresentYearAp)}</td>       
+                <td>${this.formatCurrency(closingApAdjustedToPresentYear)}</td>  
 
                 <td>${this.formatCurrency(row.contributionYearPensionAdjustedToPresentYear)}</td>
                 <td>${this.formatCurrency(cumulativePensionAdjustedToPresentYear)}</td>

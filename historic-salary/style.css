@@ -131,6 +131,14 @@ th.ap-info {
     background-color: var(--bg-ap);
 }
 
+
+/* AP EXTRA: Cols 16 to 17 */
+#breakdown-table td:nth-child(16),
+#breakdown-table td:nth-child(17) {
+    background-color: var(--bg-ap-extra);
+}
+
+
 /* 5. Add Vertical Dividers to separate the categories clearly */
 /* Targets the last column of every category section */
 /* #breakdown-table th:nth-child(2), */

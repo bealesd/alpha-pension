@@ -35,6 +35,7 @@
     --bg-sp-extra: #f5f3ffd4;
     /* Subtle Purple */
     --bg-ap: #f0fdf4d4;
+     --bg-ap-extra: #e2f8e4d4;
     /* Subtle Green */
     --border-bottom: #e2e8f0;
     --border-divider: #94a3b8;
@@ -73,6 +74,7 @@
     --bg-sp-extra: #2e1065d4;
     /* Dark Purple */
     --bg-ap: #052e16d4;
+         --bg-ap-extra: #3b5206d4;
     /* Dark Green */
     --border-bottom: #334155;
     --border-divider: #64748b;
