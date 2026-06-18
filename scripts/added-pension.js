@@ -4,6 +4,9 @@ import { alphaAddedPensionRevaluationFactorByYears202502 } from "./alpha-added-p
 import { alphaAddedPensionByPeriodicalContributionFactorsForNpa201907 } from "./alpha-added-pension-by-periodical-contribution-factors-for-npa-2019-07.js";
 import { alphaAddedPensionRevaluationFactorByYears201907 } from "./alpha-added-pension-revaluation-factors-by-years-2019-07.js";
 
+import { alphaAddedPensionByPeriodicalContributionFactorsForNpa201604 } from "./alpha-added-pension-by-periodical-contribution-factors-for-npa-2016-04.js";
+import { alphaAddedPensionRevaluationFactorByYears201506 } from "./alpha-added-pension-revaluation-factors-by-years-2015-06.js";
+
 import { Helpers } from "./helper.js";
 
 export class AddedPension {
@@ -35,6 +38,8 @@ export class AddedPension {
         let factor;
         if (actuaryVersion == '2025-02')
             factor = alphaAddedPensionRevaluationFactorByYears202502[numberOfAprils].factor;
+        else if (actuaryVersion == '2016-04')
+            factor = alphaAddedPensionRevaluationFactorByYears201506[numberOfAprils].factor;
         else
             factor = alphaAddedPensionRevaluationFactorByYears201907[numberOfAprils].factor;
 
@@ -47,6 +52,8 @@ export class AddedPension {
         let factor;
         if (actuaryVersion == '2025-02')
             factor = alphaAddedPensionByPeriodicalContributionFactorsForNpa202502[NPA][age][type];
+        else if (actuaryVersion == '2016-04')
+            factor = alphaAddedPensionByPeriodicalContributionFactorsForNpa201604[NPA][age][type];
         else
             factor = alphaAddedPensionByPeriodicalContributionFactorsForNpa201907[NPA][age][type];
 

@@ -1,3 +1,7 @@
+const DOM_CLASSES = Object.freeze({
+    tableRowSelected: 'table-row-selected'
+});
+
 export default class TableSorter {
     constructor(tableId, config) {
         this.table = document.getElementById(tableId);
@@ -7,6 +11,13 @@ export default class TableSorter {
 
         // Array to hold multi-sort state: [{ index: 0, direction: 'asc', type: 'number' }, ...]
         this.currentSorts = [];
+
+        // Guard for if this has been newed up twice
+        if (this.table.dataset.tableSorterInit) {
+            console.warn(`TableSorter already initialized for #${tableId}`);
+            return;
+        }
+        this.table.dataset.tableSorterInit = 'true';
 
         this.injectStyles();
         this.init();
@@ -89,6 +100,15 @@ export default class TableSorter {
                 border-color: #6366f1;
                 box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
             }
+
+            tr.table-row-selected {
+                outline: 1px solid #007bff;
+            }
+
+            tbody.hover tr:hover td {
+                filter: brightness(0.5);
+                /* Slightly darkens row in light mode */
+            }
         `;
         document.head.appendChild(style);
     }
@@ -98,6 +118,12 @@ export default class TableSorter {
         if (this.config.searchable) {
             this.addSearchBar();
         }
+
+        if (this.config.rowHover) {
+            this.addRowHover()
+        }
+
+        this.addRowHighlightListener();
 
         this.headers.forEach((th, index) => {
             const columnConfig = this.config.columns[index];
@@ -117,6 +143,17 @@ export default class TableSorter {
                 this.handleHeaderClick(index, colConfig.type, false, direction);
             }
         }
+    }
+
+    addRowHover() {
+        this.tbody.classList.add('hover');
+    }
+
+    addRowHighlightListener() {
+        this.tbody.addEventListener('click', (event) => {
+            const row = event.target.closest('tr');
+            if (row) row.classList.toggle(DOM_CLASSES.tableRowSelected);
+        });
     }
 
     addSearchBar() {

@@ -32,15 +32,29 @@ class HistoricSalaryUI {
         this.totalAddedPension = document.getElementById('total-added-pension');
         this.totalCombined = document.getElementById('total-combined');
         this.inflationInfo = document.getElementById('inflation-info');
-
         this.exportBtn = document.getElementById('exportBtn');
         this.importBtn = document.getElementById('importBtn');
         this.importFile = document.getElementById('importFile');
-
         this.dobInput = document.getElementById('dob');
 
         this.addedPension = new AddedPension();
 
+        this.registerEventListeners();
+
+        const inflationMax = Math.max(...Object.keys(cpiSeptember).map(Number));
+        this.inflationInfo.textContent = `The calculator has no historical inflation figures for September ${inflationMax + 1} and beyond. Any calculation beyond ${inflationMax + 1} will not be adjusted for inflation.`;
+
+        this.updateCurrentYearForYearlyBreakdownHeaders();
+
+        this.loadTheme();
+        this.loadState();
+        this.update();
+
+        this.addTableSortingForAp();
+        this.addTableSortingForSalary();
+    }
+
+    registerEventListeners() {
         this.addSalaryRowButton.addEventListener('click', this.handleAddSalaryRow.bind(this));
         this.addAddedRowButton.addEventListener('click', this.handleAddAddedRow.bind(this));
         this.salaryTableBody.addEventListener('input', this.handleInput.bind(this));
@@ -54,21 +68,13 @@ class HistoricSalaryUI {
 
         this.dobInput.addEventListener('input', this.handleInput.bind(this));
         this.themeToggle.addEventListener("click", this.handleThemeToggle.bind(this));
+    }
 
-        const inflationMax = Math.max(...Object.keys(cpiSeptember).map(Number));
-        this.inflationInfo.textContent = `The calculator has no historical inflation figures for September ${inflationMax + 1} and beyond. Any calculation beyond ${inflationMax + 1} will not be adjusted for inflation.`;
-
+    updateCurrentYearForYearlyBreakdownHeaders() {
         this.currentYear = Helpers.getCurrentYear();
         document.querySelectorAll('[data-bind="current-year"]').forEach(el => {
             el.textContent = `${this.currentYear}`.slice(-2);
         });
-
-        this.loadTheme();
-        this.loadState();
-        this.update();
-
-        this.addTableSortingForAp();
-        this.addTableSortingForSalary();
     }
 
     loadTheme() {
@@ -375,6 +381,7 @@ class HistoricSalaryUI {
         new TableSorter(this.breakdownTableId, {
             searchable: true,
             searchPlaceholder: 'Search years, age...',
+            rowHover: true,
             columns: {
                 0: { sortable: true, type: 'number' },
                 1: { sortable: true, type: 'number' },

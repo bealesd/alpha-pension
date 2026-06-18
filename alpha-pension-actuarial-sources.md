@@ -16,6 +16,9 @@ Online link to [pension tables](https://gadfactorguidancehub.co.uk/guidance/csps
 Online link To [*CS GB Consolidated Factors 2025-02.xlsx*](https://gadfactorguidancehub.co.uk/media/consolidated_factors/CSPS_GB/CS_GB_Consolidated_Factors_2025-02.xlsx)
 Local link To [*CS GB Consolidated Factors 2025-02.xlsx*](./assets/CS_GB_Consolidated_Factors_2025-02.xlsx)
 
+Online link to [CSPS_GB_Addendum_for_CSOPS_Added_Pension_Guidance_04042016.pdf](https://gadfactorguidancehub.co.uk/media/pdfs/Historic/CSPS_GB/CSPS_GB_Addendum_for_CSOPS_Added_Pension_Guidance_04042016.pdf)
+Local link to [CSPS_GB_Addendum_for_CSOPS_Added_Pension_Guidance_04042016.pdf](./assets/CSPS_GB_Addendum_for_CSOPS_Added_Pension_Guidance_04042016.pdf)
+
 Online Historic CPI Values [consumer price inflation detailed reference tables](https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/consumerpriceinflation)
 Local Historic CPI Values [consumer price inflation detailed reference tables](./assets/consumerpriceinflationdetailedreferencetables.xlsx)
 

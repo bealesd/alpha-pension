@@ -184,7 +184,7 @@ th {
     color: var(--color-text-muted);
 }
 
-tr:hover {
+#tbl tr:hover {
     background: var(--color-bg-hover);
 }
 
