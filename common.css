@@ -40,6 +40,11 @@
     --border-bottom: #e2e8f0;
     --border-divider: #94a3b8;
     /* Stronger border between categories */
+
+    --bg-ap-total: #f0fdf4d4;
+    --bg-ap-self: #ecfdf5d4;
+    --bg-ap-dependants: #dcfce7d4;
+    --bg-ap-extra: #e2f8e4d4;
 }
 
 [data-theme="dark"] {
@@ -78,6 +83,11 @@
     /* Dark Green */
     --border-bottom: #334155;
     --border-divider: #64748b;
+
+    --bg-ap-total: #052e16d4;
+    --bg-ap-self: #064e3bd4;
+    --bg-ap-dependants: #365314d4;
+    --bg-ap-extra: #3b5206d4;
 }
 
 body {

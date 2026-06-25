@@ -5,18 +5,23 @@ const DOM_CLASSES = Object.freeze({
 export default class TableSorter {
     constructor(tableId, config) {
         this.table = document.getElementById(tableId);
+
+        if (!this.table) {
+            throw new Error(`TableSorter could not find table #${tableId}`);
+        }
+
         this.tbody = this.table.querySelector('tbody');
         this.headers = this.table.querySelectorAll('thead th');
         this.config = config;
 
-        // Array to hold multi-sort state: [{ index: 0, direction: 'asc', type: 'number' }, ...]
         this.currentSorts = [];
+        this.currentSearchTerm = '';
 
-        // Guard for if this has been newed up twice
         if (this.table.dataset.tableSorterInit) {
             console.warn(`TableSorter already initialized for #${tableId}`);
             return;
         }
+
         this.table.dataset.tableSorterInit = 'true';
 
         this.injectStyles();
@@ -28,121 +33,130 @@ export default class TableSorter {
 
         const style = document.createElement('style');
         style.id = 'table-sorter-styles';
+
         style.textContent = `
             th.ts-sortable {
                 cursor: pointer;
                 user-select: none;
                 position: relative;
-                /* Make enough room on the right for the arrow AND the number badge */
-                padding-right: 35px !important; 
+                padding-right: 35px !important;
             }
+
             th.ts-sortable::after {
-                content: '\\2195'; 
+                content: '\\2195';
                 position: absolute;
-                /* Move arrow slightly inwards */
-                right: 15px; 
+                right: 15px;
                 top: 50%;
                 transform: translateY(-50%);
-                color: #ccc;
+                color: var(--color-text-muted, #9ca3af);
             }
+
             th.ts-sort-asc::after {
-                content: '\\2191'; 
-                color: black;
+                content: '\\2191';
+                color: var(--color-text, #111827);
             }
+
             th.ts-sort-desc::after {
-                content: '\\2193'; 
-                color: black;
+                content: '\\2193';
+                color: var(--color-text, #111827);
             }
+
             th.ts-sortable:hover {
-                background-color: rgba(0,0,0,0.05);
+                background-color: var(--color-bg-hover, rgba(0, 0, 0, 0.05));
             }
-            
-            /* Multi-sort priority numbers */
+
             th[data-ts-sort-index]::before {
                 content: attr(data-ts-sort-index);
                 position: absolute;
-                /* Position it inside the TH, to the right of the arrow */
                 right: 2px;
                 top: 50%;
                 transform: translateY(-50%);
-                font-size: 0.7em;
-                background: #007bff;
-                color: white;
-                border-radius: 50%;
                 width: 14px;
                 height: 14px;
+                border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                /* Ensure it stays above other elements */
-                z-index: 1; 
+                z-index: 1;
+                font-size: 0.7em;
+                color: #ffffff;
+                background: var(--color-primary, #4f46e5);
             }
 
             .ts-search-wrapper {
                 margin-bottom: 10px;
                 display: flex;
-                justify-content: flex-end; /* Aligns search bar to the right */
+                justify-content: flex-end;
             }
 
             .ts-search-input {
-                padding: 6px 12px;
-                border-radius: 12px;
-                border: 1px solid #d1d5db;
-                font-size: 14px;
-                box-sizing: border-box;
                 width: 100%;
                 max-width: 250px;
-                font-family: inherit;
+                padding: 6px 12px;
+                border: 1px solid var(--color-border, #d1d5db);
+                border-radius: 999px;
+                box-sizing: border-box;
+                font: inherit;
+                font-size: 14px;
+                color: var(--color-text, #111827);
+                background: var(--color-bg-input, #ffffff);
             }
 
             .ts-search-input:focus {
                 outline: none;
-                border-color: #6366f1;
-                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+                border-color: var(--color-primary, #6366f1);
+                box-shadow: 0 0 0 3px var(--color-primary-ring, rgba(99, 102, 241, 0.12));
             }
 
             tr.table-row-selected {
-                outline: 1px solid #007bff;
-            }
-
-            tbody.hover tr:hover td {
-                filter: brightness(0.5);
-                /* Slightly darkens row in light mode */
+                outline: 2px solid var(--color-primary, #4f46e5);
+                outline-offset: -2px;
             }
         `;
+
         document.head.appendChild(style);
     }
 
     init() {
-        // 1. Add Search Bar if configured
         if (this.config.searchable) {
             this.addSearchBar();
         }
 
         if (this.config.rowHover) {
-            this.addRowHover()
+            this.addRowHover();
         }
 
         this.addRowHighlightListener();
-
-        this.headers.forEach((th, index) => {
-            const columnConfig = this.config.columns[index];
-            if (columnConfig && columnConfig.sortable) {
-                th.classList.add('ts-sortable');
-
-                th.addEventListener('click', (e) => {
-                    this.handleHeaderClick(index, columnConfig.type, e.shiftKey);
-                });
-            }
-        });
+        this.addHeaderListeners();
 
         if (this.config.defaultSort) {
             const { index, direction } = this.config.defaultSort;
             const colConfig = this.config.columns[index];
+
             if (colConfig) {
                 this.handleHeaderClick(index, colConfig.type, false, direction);
             }
         }
+    }
+
+    addHeaderListeners() {
+        this.headers.forEach((th, index) => {
+            const columnConfig = this.config.columns[index];
+
+            if (!columnConfig || !columnConfig.sortable) return;
+
+            th.classList.add('ts-sortable');
+
+            th.addEventListener('click', (event) => {
+                if (th.hidden) return;
+
+                this.handleHeaderClick(
+                    index,
+                    columnConfig.type,
+                    event.shiftKey
+                );
+            });
+        });
     }
 
     addRowHover() {
@@ -151,20 +165,26 @@ export default class TableSorter {
 
     addRowHighlightListener() {
         this.tbody.addEventListener('click', (event) => {
+            if (event.target.closest('button, a, input, select, textarea, label')) {
+                return;
+            }
+
             const row = event.target.closest('tr');
-            if (row) row.classList.toggle(DOM_CLASSES.tableRowSelected);
+            if (row) {
+                row.classList.toggle(DOM_CLASSES.tableRowSelected);
+            }
         });
     }
 
     addSearchBar() {
-        // 1. Safety check: Prevent duplicate search bars for this specific table
         const searchWrapperId = `ts-search-wrapper-${this.table.id}`;
+
         if (document.getElementById(searchWrapperId)) {
-            return; // Search bar already exists, exit the function
+            return;
         }
 
         const wrapper = document.createElement('div');
-        wrapper.id = searchWrapperId; // Assign the unique ID
+        wrapper.id = searchWrapperId;
         wrapper.className = 'ts-search-wrapper';
 
         const searchInput = document.createElement('input');
@@ -172,8 +192,9 @@ export default class TableSorter {
         searchInput.className = 'ts-search-input';
         searchInput.placeholder = this.config.searchPlaceholder || 'Search...';
 
-        searchInput.addEventListener('input', (e) => {
-            this.filterTable(e.target.value.toLowerCase().trim());
+        searchInput.addEventListener('input', (event) => {
+            this.currentSearchTerm = event.target.value.toLowerCase().trim();
+            this.filterTable(this.currentSearchTerm);
         });
 
         wrapper.appendChild(searchInput);
@@ -187,34 +208,60 @@ export default class TableSorter {
         }
     }
 
+    refresh() {
+        if (this.config.rowHover) {
+            this.addRowHover();
+        }
+
+        if (this.currentSearchTerm) {
+            this.filterTable(this.currentSearchTerm);
+        }
+
+        this.removeHiddenColumnSorts();
+
+        if (this.currentSorts.length > 0) {
+            this.applySort();
+        } else {
+            this.updateSortIndicators();
+        }
+    }
+
     filterTable(searchTerm) {
         const rows = this.tbody.querySelectorAll('tr');
 
         rows.forEach(row => {
-            // Build a string of all values in this specific row
             let rowText = '';
+
             for (let i = 0; i < row.children.length; i++) {
-                // We use your existing getCellValue so it correctly reads the inputs/selects!
-                rowText += this.getCellValue(row, i) + ' ';
+                const cell = row.children[i];
+
+                if (!this.config.searchHiddenColumns && cell.hidden) {
+                    continue;
+                }
+
+                rowText += `${this.getCellValue(row, i)} `;
             }
 
-            // If the row text includes the search term, show it. Otherwise, hide it.
-            if (rowText.toLowerCase().includes(searchTerm)) {
-                row.style.display = ''; // Resets display to default (shows row)
-            } else {
-                row.style.display = 'none'; // Hides row
-            }
+            row.style.display = rowText.toLowerCase().includes(searchTerm)
+                ? ''
+                : 'none';
         });
     }
 
     handleHeaderClick(index, type, isShiftKey, forceDirection = null) {
-        // Find if this column is already being sorted
-        const existingSortIndex = this.currentSorts.findIndex(s => s.index === index);
+        const header = this.headers[index];
+
+        if (header?.hidden) {
+            return;
+        }
+
+        const existingSortIndex = this.currentSorts.findIndex(sort => sort.index === index);
         let newDirection = 'asc';
 
         if (existingSortIndex > -1) {
-            // Toggle direction if already sorting by this column
-            newDirection = this.currentSorts[existingSortIndex].direction === 'asc' ? 'desc' : 'asc';
+            newDirection = this.currentSorts[existingSortIndex].direction === 'asc'
+                ? 'desc'
+                : 'asc';
         }
 
         if (forceDirection) {
@@ -222,83 +269,133 @@ export default class TableSorter {
         }
 
         if (!isShiftKey) {
-            // Standard click: Clear all other sorts
             this.currentSorts = [{ index, direction: newDirection, type }];
+        } else if (existingSortIndex > -1) {
+            this.currentSorts[existingSortIndex].direction = newDirection;
         } else {
-            // Shift + Click: Add/Update multi-sort
-            if (existingSortIndex > -1) {
-                // Update existing column direction
-                this.currentSorts[existingSortIndex].direction = newDirection;
-            } else {
-                // Add new column to the sort array
-                this.currentSorts.push({ index, direction: newDirection, type });
-            }
+            this.currentSorts.push({ index, direction: newDirection, type });
         }
 
         this.applySort();
     }
 
+    removeSortForColumn(index) {
+        const originalLength = this.currentSorts.length;
+
+        this.currentSorts = this.currentSorts.filter(sort => sort.index !== index);
+
+        if (this.currentSorts.length !== originalLength) {
+            this.applySort();
+        } else {
+            this.updateSortIndicators();
+        }
+    }
+
+    removeSortForColumns(indexes) {
+        const hiddenIndexes = new Set(indexes);
+        const originalLength = this.currentSorts.length;
+
+        this.currentSorts = this.currentSorts.filter(sort => !hiddenIndexes.has(sort.index));
+
+        if (this.currentSorts.length !== originalLength && this.currentSorts.length > 0) {
+            this.applySort();
+        } else {
+            this.updateSortIndicators();
+        }
+    }
+
+    removeHiddenColumnSorts() {
+        const originalLength = this.currentSorts.length;
+
+        this.currentSorts = this.currentSorts.filter(sort => {
+            const header = this.headers[sort.index];
+            return header && !header.hidden;
+        });
+
+        if (this.currentSorts.length !== originalLength) {
+            this.updateSortIndicators();
+        }
+    }
+
     applySort() {
-        // 1. Update UI (arrows and priority numbers)
-        this.headers.forEach(th => {
-            th.classList.remove('ts-sort-asc', 'ts-sort-desc');
-            th.removeAttribute('data-ts-sort-index');
-        });
+        this.updateSortIndicators();
 
-        this.currentSorts.forEach((sortDef, i) => {
-            const th = this.headers[sortDef.index];
-            th.classList.add(sortDef.direction === 'asc' ? 'ts-sort-asc' : 'ts-sort-desc');
-            // If multi-sorting, show a little number indicating primary/secondary sort
-            if (this.currentSorts.length > 1) {
-                th.setAttribute('data-ts-sort-index', i + 1);
-            }
-        });
-
-        // 2. Sort the rows
         const rows = Array.from(this.tbody.querySelectorAll('tr'));
 
         const sortedRows = rows.sort((rowA, rowB) => {
-            // Loop through our sort criteria
-            for (let sortDef of this.currentSorts) {
-                let valA = this.getCellValue(rowA, sortDef.index);
-                let valB = this.getCellValue(rowB, sortDef.index);
+            for (const sortDef of this.currentSorts) {
+                const header = this.headers[sortDef.index];
+
+                if (header?.hidden) {
+                    continue;
+                }
+
+                const valA = this.getCellValue(rowA, sortDef.index);
+                const valB = this.getCellValue(rowB, sortDef.index);
 
                 let comparison = 0;
 
                 if (sortDef.type === 'number') {
-                    // Strip out £, $, commas, and spaces before converting to a number
-                    const cleanA = String(valA).replace(/[^0-9.-]+/g, "");
-                    const cleanB = String(valB).replace(/[^0-9.-]+/g, "");
+                    const cleanA = String(valA).replace(/[^0-9.-]+/g, '');
+                    const cleanB = String(valB).replace(/[^0-9.-]+/g, '');
 
                     const numA = Number(cleanA) || 0;
                     const numB = Number(cleanB) || 0;
+
                     comparison = numA - numB;
                 } else {
                     comparison = String(valA).localeCompare(String(valB));
                 }
 
-                // If they are not equal, we have our tiebreaker! Return the result.
                 if (comparison !== 0) {
-                    return sortDef.direction === 'asc' ? comparison : -comparison;
+                    return sortDef.direction === 'asc'
+                        ? comparison
+                        : -comparison;
                 }
-
-                // If they are equal, the loop continues to the next sort field in the array
             }
-            return 0; // Completely equal across all sort fields
+
+            return 0;
         });
 
-        // 3. Re-append rows to DOM
         sortedRows.forEach(row => this.tbody.appendChild(row));
+    }
+
+    updateSortIndicators() {
+        this.headers.forEach(th => {
+            th.classList.remove('ts-sort-asc', 'ts-sort-desc');
+            th.removeAttribute('data-ts-sort-index');
+        });
+
+        this.currentSorts.forEach((sortDef, index) => {
+            const th = this.headers[sortDef.index];
+
+            if (!th || th.hidden) return;
+
+            th.classList.add(
+                sortDef.direction === 'asc'
+                    ? 'ts-sort-asc'
+                    : 'ts-sort-desc'
+            );
+
+            if (this.currentSorts.length > 1) {
+                th.setAttribute('data-ts-sort-index', index + 1);
+            }
+        });
     }
 
     getCellValue(row, index) {
         const cell = row.children[index];
-        if (!cell) return '';
+
+        if (!cell) {
+            return '';
+        }
 
         const input = cell.querySelector('input, select');
+
         if (input) {
             return input.value;
         }
+
         return cell.textContent.trim();
     }
 }
