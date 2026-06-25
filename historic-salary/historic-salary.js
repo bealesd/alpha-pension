@@ -224,8 +224,17 @@ class HistoricSalaryUI {
         return row.salary * CONTRIBUTION_RATE;
     }
 
-    estimateAddedPension(purchased, row, dob, schemaStartYear) {
-        return this.addedPension.calculateAddedPensionForYearForGivenAge(purchased, row.type, dob, schemaStartYear, row.actuaryVersion);
+    /**
+     * 
+     * @param {*} purchased 
+     * @param {*} dob 
+     * @param {*} schemaStartYear 
+     * @param {*} type - self or dependants
+     * @param {*} actuaryVersion 
+     * @returns 
+     */
+    estimateAddedPension(purchased, dob, schemaStartYear, type, actuaryVersion) {
+        return this.addedPension.calculateAddedPensionForYearForGivenAge(purchased, type, dob, schemaStartYear, actuaryVersion);
     }
 
     calculateLedgerRow(year, currentBalance, newContributions) {
@@ -250,7 +259,7 @@ class HistoricSalaryUI {
     getYearlyApSummary(addedRowsForYear, dob, schemeStartDate) {
         return addedRowsForYear.reduce((acc, row) => {
             const purchasedAp = row.period === 'month' ? row.added * 12 : row.added;
-            const amount = this.estimateAddedPension(purchasedAp, row, dob, schemeStartDate.year);
+            const amount = this.estimateAddedPension(purchasedAp, dob, schemeStartDate.year, row.type, row.actuaryVersion);
 
             acc.input += purchasedAp;
             acc.unadjusted += amount;
@@ -286,6 +295,12 @@ class HistoricSalaryUI {
             const sp = this.getYearlySpSummary(salaryByYear[year], schemeDates.schemeStartDate);
             const ap = this.getYearlyApSummary(addedByYear[year] || [], settings.dob, schemeDates.schemeStartDate);
 
+            const addedRowsForYearSelf = addedByYear[year]?.filter(row => row.type === "self");
+            const apSelf = this.getYearlyApSummary(addedRowsForYearSelf || [], settings.dob, schemeDates.schemeStartDate);
+
+            const addedRowsForYearDependent = addedByYear[year]?.filter(row => row.type === "dependants");
+            const apDependent = this.getYearlyApSummary(addedRowsForYearDependent || [], settings.dob, schemeDates.schemeStartDate);
+
             totalSalaryPension += sp.adjustedToPresent;
             totalAddedPension += ap.adjustedToPresent;
 
@@ -294,6 +309,8 @@ class HistoricSalaryUI {
                 age,
                 sp,
                 ap,
+                apSelf,
+                apDependent,
                 totalAdjustedToPresent: sp.adjustedToPresent + ap.adjustedToPresent
             };
         });
@@ -325,8 +342,15 @@ class HistoricSalaryUI {
         let cumulativePensionAdjustedToPresentYear = 0;
         let closingSpAdjustedToPresentYear = 0;
         let currentSp = 0;
+
         let closingApAdjustedToPresentYear = 0;
         let currentAp = 0;
+
+        let currentApSelf = 0;
+        let closingApAdjustedToPresentYearSelf = 0
+
+        let currentApDependent = 0;
+        let closingApAdjustedToPresentYearDependent = 0
 
         for (const row of rows) {
             const cpi = Helpers.getSingleYearCpi(row.year);
@@ -343,6 +367,16 @@ class HistoricSalaryUI {
             closingApAdjustedToPresentYear += row.ap.adjustedToPresent;
             const apLedger = this.calculateLedgerRow(row.year, currentAp, row.ap.unadjusted);
             currentAp = apLedger.closing;
+
+            // AP Self Calculations
+            closingApAdjustedToPresentYearSelf += row.apSelf.adjustedToPresent;
+            const apLedgerSelf = this.calculateLedgerRow(row.year, currentApSelf, row.apSelf.unadjusted);
+            currentApSelf = apLedgerSelf.closing;
+
+            // AP Dependent Calculations
+            closingApAdjustedToPresentYearDependent += row.apDependent.adjustedToPresent;
+            const apLedgerDependent = this.calculateLedgerRow(row.year, currentApDependent, row.apDependent.unadjusted);
+            currentApDependent = apLedgerDependent.closing;
 
             // Year Labels
             const startYearLastTwo = `${row.year}`.slice(-2);
@@ -368,6 +402,18 @@ class HistoricSalaryUI {
                 <td>${this.formatCurrency(row.ap.unadjusted)}</td>
                 <td>${this.formatCurrency(apLedger.inflationChange)}</td>
                 <td>${this.formatCurrency(apLedger.closing)}</td> 
+
+                <td>${this.formatCurrency(apLedgerSelf.opening)}</td>
+                <td>${this.formatCurrency(row.apSelf.input)}</td>     
+                <td>${this.formatCurrency(row.apSelf.unadjusted)}</td>
+                <td>${this.formatCurrency(apLedgerSelf.inflationChange)}</td>
+                <td>${this.formatCurrency(apLedgerSelf.closing)}</td> 
+
+                <td>${this.formatCurrency(apLedgerDependent.opening)}</td>
+                <td>${this.formatCurrency(row.apDependent.input)}</td>     
+                <td>${this.formatCurrency(row.apDependent.unadjusted)}</td>
+                <td>${this.formatCurrency(apLedgerDependent.inflationChange)}</td>
+                <td>${this.formatCurrency(apLedgerDependent.closing)}</td> 
 
                 <td>${this.formatCurrency(row.ap.adjustedToPresent)}</td>       
                 <td>${this.formatCurrency(closingApAdjustedToPresentYear)}</td>         

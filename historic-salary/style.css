@@ -141,13 +141,9 @@ th.ap-info {
 
 /* 5. Add Vertical Dividers to separate the categories clearly */
 /* Targets the last column of every category section */
-/* #breakdown-table th:nth-child(2), */
 #breakdown-table td:nth-child(2),
-/* #breakdown-table th:nth-child(8), */
 #breakdown-table td:nth-child(8),
-/* #breakdown-table th:nth-child(10), */
 #breakdown-table td:nth-child(10),
-/* #breakdown-table th:nth-child(15), */
 #breakdown-table td:nth-child(15) {
     border-right: 2px solid var(--border-divider);
 }
