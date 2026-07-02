@@ -1,7 +1,7 @@
 ﻿import { AddedPension } from "../scripts/added-pension.js";
 import { cpiSeptember } from "../scripts/cpi-september.js";
 import { Helpers } from "../scripts/helper.js";
-import TableSorter from "../scripts/table-sorter.js";
+import TableEnhancer from "../scripts/table-enhancer.js";
 import { EmployeeContributions } from "../scripts/employee-contributions.js";
 
 const STORAGE_KEY = 'historicSalaryState';
@@ -13,6 +13,10 @@ const CONTRIBUTION_RATE = 0.0232;
 const DOM_IDS = Object.freeze({
     themeToggle: 'theme-toggle',
     breakdownColumnControls: 'breakdown-column-controls'
+});
+
+const DOM_CLASSES = Object.freeze({
+    
 });
 
 const ADDED_PENSION_TYPE = Object.freeze({
@@ -244,7 +248,7 @@ class HistoricSalaryUI {
     }
 
     addTableSortingForAp() {
-        new TableSorter(this.addedTableId, {
+        new TableEnhancer(this.addedTableId, {
             columns: {
                 0: { sortable: true, type: 'number' },
                 1: { sortable: true, type: 'string' },
@@ -257,7 +261,7 @@ class HistoricSalaryUI {
     }
 
     addTableSortingForSalary() {
-        new TableSorter(this.salaryTableId, {
+        new TableEnhancer(this.salaryTableId, {
             columns: {
                 0: { sortable: true, type: 'number' },
                 1: { sortable: true, type: 'number' }
@@ -580,7 +584,7 @@ class HistoricSalaryUI {
 
             tr.innerHTML = `
                 <td class="info group-start sticky-col sticky-year">${startYearLastTwo}/${endYearLastTwo}</td>
-                <td class="info sticky-col sticky-year">${row.age}</td>
+                <td class="info sticky-col sticky-age">${row.age}</td>
 
                 <td class="sp-info group-start">${this.formatCurrency(spLedger.opening)}</td>
                 <td class="sp-info">${this.formatCurrency(row.sp.input)}</td>
@@ -631,7 +635,7 @@ class HistoricSalaryUI {
     ensureBreakdownSorter() {
         if (this.breakdownSorter) return;
 
-        this.breakdownSorter = new TableSorter(this.breakdownTableId, {
+        this.breakdownSorter = new TableEnhancer(this.breakdownTableId, {
             searchable: true,
             searchPlaceholder: 'Search years, age...',
             rowHover: true,

@@ -72,8 +72,4 @@ export class AddedPension {
 
         return Math.round(totalContributionsForPeriod / (regularContributionFactor * revaluationFactor));
     };
-
-
-
-
 }

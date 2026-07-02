@@ -2,12 +2,12 @@ const DOM_CLASSES = Object.freeze({
     tableRowSelected: 'table-row-selected'
 });
 
-export default class TableSorter {
+export default class TableEnhancer {
     constructor(tableId, config) {
         this.table = document.getElementById(tableId);
 
         if (!this.table) {
-            throw new Error(`TableSorter could not find table #${tableId}`);
+            throw new Error(`TableEnhancer could not find table #${tableId}`);
         }
 
         this.tbody = this.table.querySelector('tbody');
@@ -17,12 +17,12 @@ export default class TableSorter {
         this.currentSorts = [];
         this.currentSearchTerm = '';
 
-        if (this.table.dataset.tableSorterInit) {
-            console.warn(`TableSorter already initialized for #${tableId}`);
+        if (this.table.dataset.tableEnhancerInit) {
+            console.warn(`TableEnhancer already initialized for #${tableId}`);
             return;
         }
 
-        this.table.dataset.tableSorterInit = 'true';
+        this.table.dataset.tableEnhancerInit = 'true';
 
         this.injectStyles();
         this.init();
