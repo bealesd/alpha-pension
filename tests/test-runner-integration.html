@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>Example Tests</title>
 </head>
+
 <body>
     <script type="module">
         import { TestRunner } from "https://cdn.jsdelivr.net/gh/bealesd/js-test@main/source/test-runner.js";
         let baseURL = window.location.origin;
         if (window.location.origin === 'https://bealesd.github.io')
             baseURL = `${window.location.origin}/alpha-pension`;
-        
-        TestRunner.runWithTestFiles([
-            `${baseURL}/tests/unit-tests.js`,
+
+         TestRunner.runWithTestFiles([
+            `${baseURL}/tests/integration-tests.js`,
         ]);
+
+
     </script>
 </body>
+
 </html>

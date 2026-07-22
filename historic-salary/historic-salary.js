@@ -4,19 +4,45 @@ import { Helpers } from "../scripts/helper.js";
 import TableEnhancer from "../scripts/table-enhancer.js";
 import { EmployeeContributions } from "../scripts/employee-contributions.js";
 
-const STORAGE_KEY = 'historicSalaryState';
 const THEME_KEY = 'pensionCalculatorTheme';
 const BREAKDOWN_COLUMN_VISIBILITY_KEY = 'historicSalaryBreakdownColumnVisibility';
+
+const STATE_VERSION = 1;
+const DEFAULT_DOB = '1980-01-01';
+const DEFAULT_ACTUARY_VERSION = '2025-02';
 
 const CONTRIBUTION_RATE = 0.0232;
 
 const DOM_IDS = Object.freeze({
     themeToggle: 'theme-toggle',
-    breakdownColumnControls: 'breakdown-column-controls'
+    breakdownColumnControls: 'breakdown-column-controls',
+
+    salaryTable: 'salary-table',
+    addedTable: 'added-table',
+    breakdownTable: 'breakdown-table',
+
+    addSalaryRowButton: 'add-salary-row',
+    addAddedRowButton: 'add-added-row',
+
+    totalSalary: 'total-salary',
+    totalAdded: 'total-added',
+    totalSalaryContributions: 'total-salary-contributions',
+    totalSalaryPension: 'total-salary-pension',
+    totalAddedPension: 'total-added-pension',
+    totalCombined: 'total-combined',
+
+    inflationInfo: 'inflation-info',
+    exportButton: 'exportBtn',
+    importButton: 'importBtn',
+    importFile: 'importFile',
+    dob: 'dob',
+
+    salaryRowTemplate: 'salary-row',
+    addedRowTemplate: 'added-row'
 });
 
-const DOM_CLASSES = Object.freeze({
-    
+const DOM_BINDINGS = Object.freeze({
+    currentYear: 'current-year'
 });
 
 const ADDED_PENSION_TYPE = Object.freeze({
@@ -25,6 +51,13 @@ const ADDED_PENSION_TYPE = Object.freeze({
 });
 
 const VALID_ADDED_PENSION_TYPES = Object.freeze(Object.values(ADDED_PENSION_TYPE));
+
+const ADDED_PENSION_PERIOD = Object.freeze({
+    YEAR: 'year',
+    MONTH: 'month'
+});
+
+const VALID_ADDED_PENSION_PERIODS = Object.freeze(Object.values(ADDED_PENSION_PERIOD));
 
 const ADDED_PENSION_GROUP = Object.freeze({
     TOTAL: 'total',
@@ -38,10 +71,33 @@ const ADDED_PENSION_GROUPS = Object.freeze([
     ADDED_PENSION_GROUP.DEPENDANTS
 ]);
 
-const ADDED_PENSION_GROUP_CLASS = Object.freeze({
-    [ADDED_PENSION_GROUP.TOTAL]: 'ap-total',
-    [ADDED_PENSION_GROUP.SELF]: 'ap-self',
-    [ADDED_PENSION_GROUP.DEPENDANTS]: 'ap-dependants'
+const DOM_CLASSES = Object.freeze({
+    year: 'year',
+    salary: 'salary',
+    actuaryVersion: 'actuary-version',
+    type: 'type',
+    period: 'period',
+    added: 'added',
+    removeRow: 'remove-row',
+
+    columnToggle: 'column-toggle',
+    groupStart: 'group-start',
+
+    info: 'info',
+    spInfo: 'sp-info',
+    spInfoExtra: 'sp-info-extra',
+    apInfo: 'ap-info',
+    apInfoExtra: 'ap-info-extra',
+
+    stickyCol: 'sticky-col',
+    stickyYear: 'sticky-year',
+    stickyAge: 'sticky-age',
+
+    addedPensionGroup: Object.freeze({
+        [ADDED_PENSION_GROUP.TOTAL]: 'ap-total',
+        [ADDED_PENSION_GROUP.SELF]: 'ap-self',
+        [ADDED_PENSION_GROUP.DEPENDANTS]: 'ap-dependants'
+    })
 });
 
 const BREAKDOWN_COLUMN_GROUPS = Object.freeze({
@@ -98,42 +154,136 @@ function isAddedPensionType(type) {
     return VALID_ADDED_PENSION_TYPES.includes(type);
 }
 
+function isPlainObject(value) {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isValidYear(value) {
+    return Number.isInteger(value) && value >= 1900 && value <= 2200;
+}
+
+function isNonNegativeNumber(value) {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function isValidDob(value) {
+    if (typeof value !== 'string') return false;
+
+    try {
+        Temporal.PlainDate.from(value);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function validateSalaryRow(row, index) {
+    const errors = [];
+
+    if (!isPlainObject(row)) {
+        return [`salaryRows[${index}] must be an object.`];
+    }
+
+    if (!isValidYear(row.year)) {
+        errors.push(`salaryRows[${index}].year must be a valid year.`);
+    }
+
+    if (!isNonNegativeNumber(row.salary)) {
+        errors.push(`salaryRows[${index}].salary must be a non-negative number.`);
+    }
+
+    return errors;
+}
+
+function validateAddedRow(row, index) {
+    const errors = [];
+
+    if (!isPlainObject(row)) {
+        return [`addedRows[${index}] must be an object.`];
+    }
+
+    if (!isValidYear(row.year)) {
+        errors.push(`addedRows[${index}].year must be a valid year.`);
+    }
+
+    if (typeof row.actuaryVersion !== 'string' || row.actuaryVersion.trim() === '') {
+        errors.push(`addedRows[${index}].actuaryVersion must be a non-empty string.`);
+    }
+
+    if (!isAddedPensionType(row.type)) {
+        errors.push(`addedRows[${index}].type must be "${ADDED_PENSION_TYPE.SELF}" or "${ADDED_PENSION_TYPE.DEPENDANTS}".`);
+    }
+
+    if (!VALID_ADDED_PENSION_PERIODS.includes(row.period)) {
+        errors.push(`addedRows[${index}].period must be "${ADDED_PENSION_PERIOD.YEAR}" or "${ADDED_PENSION_PERIOD.MONTH}".`);
+    }
+
+    if (!isNonNegativeNumber(row.added)) {
+        errors.push(`addedRows[${index}].added must be a non-negative number.`);
+    }
+
+    return errors;
+}
+
+function validateHistoricSalaryState(state) {
+    const errors = [];
+
+    if (!isPlainObject(state)) {
+        return {
+            valid: false,
+            errors: ['State must be an object.']
+        };
+    }
+
+    if (state.version !== undefined && state.version !== STATE_VERSION) {
+        errors.push(`Unsupported state version "${state.version}".`);
+    }
+
+    if (!Array.isArray(state.salaryRows)) {
+        errors.push('salaryRows must be an array.');
+    } else {
+        state.salaryRows.forEach((row, index) => {
+            errors.push(...validateSalaryRow(row, index));
+        });
+    }
+
+    if (!Array.isArray(state.addedRows)) {
+        errors.push('addedRows must be an array.');
+    } else {
+        state.addedRows.forEach((row, index) => {
+            errors.push(...validateAddedRow(row, index));
+        });
+    }
+
+    if (!isPlainObject(state.settings)) {
+        errors.push('settings must be an object.');
+    } else if (!isValidDob(state.settings.dob)) {
+        errors.push('settings.dob must be a valid ISO date string.');
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
+    };
+}
+
+function formatValidationErrors(errors) {
+    return errors.map(error => `• ${error}`).join('\n');
+}
+
 class HistoricSalaryUI {
     constructor() {
-        this.addedTableId = 'added-table';
-        this.breakdownTableId = 'breakdown-table';
-        this.salaryTableId = 'salary-table';
-
-        this.themeToggle = document.getElementById(DOM_IDS.themeToggle);
-        this.salaryTableBody = document.querySelector('#salary-table tbody');
-        this.addedTableBody = document.querySelector('#added-table tbody');
-        this.breakdownBody = document.querySelector('#breakdown-table tbody');
-        this.breakdownColumnControls = document.getElementById(DOM_IDS.breakdownColumnControls);
-
-        this.addSalaryRowButton = document.getElementById('add-salary-row');
-        this.addAddedRowButton = document.getElementById('add-added-row');
-
-        this.totalSalary = document.getElementById('total-salary');
-        this.totalAdded = document.getElementById('total-added');
-        this.totalSalaryContributions = document.getElementById('total-salary-contributions');
-        this.totalSalaryPension = document.getElementById('total-salary-pension');
-        this.totalAddedPension = document.getElementById('total-added-pension');
-        this.totalCombined = document.getElementById('total-combined');
-
-        this.inflationInfo = document.getElementById('inflation-info');
-        this.exportBtn = document.getElementById('exportBtn');
-        this.importBtn = document.getElementById('importBtn');
-        this.importFile = document.getElementById('importFile');
-        this.dobInput = document.getElementById('dob');
+        const params = new URLSearchParams(window.location.search);
+        this.STORAGE_KEY = params.get("storageKey") || "historic-salary-state";
 
         this.addedPension = new AddedPension();
-        this.breakdownSorter = null;
+        this.enhancedBreakdownTable = null;
         this.breakdownColumnVisibility = this.loadBreakdownColumnVisibility();
 
         this.registerEventListeners();
 
         const inflationMax = Math.max(...Object.keys(cpiSeptember).map(Number));
-        this.inflationInfo.textContent = `The calculator has no historical inflation figures for September ${inflationMax + 1} and beyond. Any calculation beyond ${inflationMax + 1} will not be adjusted for inflation.`;
+        document.querySelector(`#${DOM_IDS.inflationInfo}`).textContent = `The calculator has no historical inflation figures for September ${inflationMax + 1} and beyond. Any calculation beyond ${inflationMax + 1} will not be adjusted for inflation.`;
 
         this.updateCurrentYearForYearlyBreakdownHeaders();
         this.renderBreakdownColumnControls();
@@ -147,28 +297,40 @@ class HistoricSalaryUI {
     }
 
     registerEventListeners() {
-        this.addSalaryRowButton.addEventListener('click', this.handleAddSalaryRow.bind(this));
-        this.addAddedRowButton.addEventListener('click', this.handleAddAddedRow.bind(this));
+        const addSalaryRowButton = document.querySelector(`#${DOM_IDS.addSalaryRowButton}`);
+        const addAddedRowButton = document.querySelector(`#${DOM_IDS.addAddedRowButton}`);
+        const salaryTableBody = document.querySelector(`#${DOM_IDS.salaryTable} tbody`);
+        const addedTableBody = document.querySelector(`#${DOM_IDS.addedTable} tbody`);
+        const exportButton = document.querySelector(`#${DOM_IDS.exportButton}`);
+        const importButton = document.querySelector(`#${DOM_IDS.importButton}`);
+        const importFile = document.querySelector(`#${DOM_IDS.importFile}`);
+        const dobInput = document.querySelector(`#${DOM_IDS.dob}`);
+        const themeToggle = document.querySelector(`#${DOM_IDS.themeToggle}`);
 
-        this.salaryTableBody.addEventListener('input', this.handleInput.bind(this));
-        this.salaryTableBody.addEventListener('click', this.handleRemoveRow.bind(this));
+        addSalaryRowButton.addEventListener('click', this.handleAddSalaryRow.bind(this));
+        addAddedRowButton.addEventListener('click', this.handleAddAddedRow.bind(this));
 
-        this.addedTableBody.addEventListener('input', this.handleInput.bind(this));
-        this.addedTableBody.addEventListener('click', this.handleRemoveRow.bind(this));
+        salaryTableBody.addEventListener('input', this.handleInput.bind(this));
+        salaryTableBody.addEventListener('click', this.handleRemoveRow.bind(this));
 
-        this.exportBtn.addEventListener('click', this.handleExport.bind(this));
+        addedTableBody.addEventListener('input', this.handleInput.bind(this));
+        addedTableBody.addEventListener('click', this.handleRemoveRow.bind(this));
 
-        this.importBtn.addEventListener('click', () => this.importFile.click());
-        this.importFile.addEventListener('change', this.handleImportFile.bind(this));
+        exportButton.addEventListener('click', this.handleExport.bind(this));
 
-        this.dobInput.addEventListener('input', this.handleInput.bind(this));
-        this.themeToggle.addEventListener('click', this.handleThemeToggle.bind(this));
+        importButton.addEventListener('click', () => {
+            importFile.click();
+        });
+
+        importFile.addEventListener('change', this.handleImportFile.bind(this));
+        dobInput.addEventListener('input', this.handleInput.bind(this));
+        themeToggle.addEventListener('click', this.handleThemeToggle.bind(this));
     }
 
     updateCurrentYearForYearlyBreakdownHeaders() {
         this.currentYear = Helpers.getCurrentYear();
 
-        document.querySelectorAll('[data-bind="current-year"]').forEach(el => {
+        document.querySelectorAll(`[data-bind="${DOM_BINDINGS.currentYear}"]`).forEach(el => {
             el.textContent = `${this.currentYear}`.slice(-2);
         });
     }
@@ -202,7 +364,14 @@ class HistoricSalaryUI {
         reader.onload = (event) => {
             try {
                 const parsedState = JSON.parse(event.target.result);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(parsedState));
+                const validation = validateHistoricSalaryState(parsedState);
+
+                if (!validation.valid) {
+                    alert(`The imported file is not a valid pension settings backup.\n\n${formatValidationErrors(validation.errors)}`);
+                    return;
+                }
+
+                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsedState));
                 this.loadState();
                 this.update();
                 alert('Settings imported successfully!');
@@ -212,13 +381,17 @@ class HistoricSalaryUI {
             }
         };
 
+        reader.onerror = () => {
+            alert('There was an error reading the selected file.');
+        };
+
         reader.readAsText(file);
         e.target.value = '';
     }
 
     handleAddSalaryRow(event) {
         event.preventDefault();
-        this.addSalaryRow({ year: 2024, salary: 0 });
+        this.addSalaryRow({ year: this.currentYear, salary: 0 });
         this.update();
     }
 
@@ -226,18 +399,18 @@ class HistoricSalaryUI {
         event.preventDefault();
 
         this.addAddedRow({
-            year: 2024,
+            year: this.currentYear,
             type: ADDED_PENSION_TYPE.SELF,
-            period: 'year',
+            period: ADDED_PENSION_PERIOD.YEAR,
             added: 0,
-            actuaryVersion: '2025-02'
+            actuaryVersion: DEFAULT_ACTUARY_VERSION
         });
 
         this.update();
     }
 
     handleRemoveRow(event) {
-        if (!event.target.classList.contains('remove-row')) return;
+        if (!event.target.classList.contains(DOM_CLASSES.removeRow)) return;
 
         event.target.closest('tr').remove();
         this.update();
@@ -248,7 +421,7 @@ class HistoricSalaryUI {
     }
 
     addTableSortingForAp() {
-        new TableEnhancer(this.addedTableId, {
+        new TableEnhancer(DOM_IDS.addedTable, {
             columns: {
                 0: { sortable: true, type: 'number' },
                 1: { sortable: true, type: 'string' },
@@ -261,7 +434,7 @@ class HistoricSalaryUI {
     }
 
     addTableSortingForSalary() {
-        new TableEnhancer(this.salaryTableId, {
+        new TableEnhancer(DOM_IDS.salaryTable, {
             columns: {
                 0: { sortable: true, type: 'number' },
                 1: { sortable: true, type: 'number' }
@@ -271,18 +444,18 @@ class HistoricSalaryUI {
     }
 
     addSalaryRow(data) {
-        const template = document.getElementById('salary-row');
+        const template = document.querySelector(`#${DOM_IDS.salaryRowTemplate}`);
         const row = template.content.cloneNode(true);
         const tr = row.querySelector('tr');
 
-        tr.querySelector('.year').value = data.year || 2024;
-        tr.querySelector('.salary').value = data.salary || 0;
+        tr.querySelector(`.${DOM_CLASSES.year}`).value = data.year ?? this.currentYear;
+        tr.querySelector(`.${DOM_CLASSES.salary}`).value = data.salary ?? 0;
 
-        this.salaryTableBody.appendChild(tr);
+        document.querySelector(`#${DOM_IDS.salaryTable} tbody`).appendChild(tr);
     }
 
     addAddedRow(data) {
-        const template = document.getElementById('added-row');
+        const template = document.querySelector(`#${DOM_IDS.addedRowTemplate}`);
         const row = template.content.cloneNode(true);
         const tr = row.querySelector('tr');
 
@@ -290,40 +463,57 @@ class HistoricSalaryUI {
             ? data.type
             : ADDED_PENSION_TYPE.DEPENDANTS;
 
-        tr.querySelector('.actuary-version').value = data.actuaryVersion || '2025-02';
-        tr.querySelector('.year').value = data.year || 2024;
-        tr.querySelector('.type').value = type;
-        tr.querySelector('.period').value = data.period || 'year';
-        tr.querySelector('.added').value = data.added || 0;
+        const period = VALID_ADDED_PENSION_PERIODS.includes(data.period)
+            ? data.period
+            : ADDED_PENSION_PERIOD.YEAR;
 
-        this.addedTableBody.appendChild(tr);
+        tr.querySelector(`.${DOM_CLASSES.actuaryVersion}`).value = data.actuaryVersion || DEFAULT_ACTUARY_VERSION;
+        tr.querySelector(`.${DOM_CLASSES.year}`).value = data.year ?? this.currentYear;
+        tr.querySelector(`.${DOM_CLASSES.type}`).value = type;
+        tr.querySelector(`.${DOM_CLASSES.period}`).value = period;
+        tr.querySelector(`.${DOM_CLASSES.added}`).value = data.added ?? 0;
+
+        document.querySelector(`#${DOM_IDS.addedTable} tbody`).appendChild(tr);
     }
 
     getSalaryRows() {
-        return [...this.salaryTableBody.querySelectorAll('tr')]
+        const salaryTableBody = document.querySelector(`#${DOM_IDS.salaryTable} tbody`);
+
+        return [...salaryTableBody.querySelectorAll('tr')]
             .map(row => ({
-                year: Number(row.querySelector('.year').value) || 0,
-                salary: Number(row.querySelector('.salary').value) || 0
+                year: Number(row.querySelector(`.${DOM_CLASSES.year}`).value) || 0,
+                salary: Number(row.querySelector(`.${DOM_CLASSES.salary}`).value) || 0
             }))
             .filter(row => row.year > 0)
             .sort((a, b) => a.year - b.year);
     }
 
     getAddedRows() {
-        return [...this.addedTableBody.querySelectorAll('tr')]
+        const addedTableBody = document.querySelector(`#${DOM_IDS.addedTable} tbody`);
+
+        return [...addedTableBody.querySelectorAll('tr')]
             .map(row => ({
-                year: Number(row.querySelector('.year').value) || 0,
-                actuaryVersion: row.querySelector('.actuary-version').value,
-                type: row.querySelector('.type').value,
-                period: row.querySelector('.period').value,
-                added: Number(row.querySelector('.added').value) || 0
+                year: Number(row.querySelector(`.${DOM_CLASSES.year}`).value) || 0,
+                actuaryVersion: row.querySelector(`.${DOM_CLASSES.actuaryVersion}`).value,
+                type: row.querySelector(`.${DOM_CLASSES.type}`).value,
+                period: row.querySelector(`.${DOM_CLASSES.period}`).value,
+                added: Number(row.querySelector(`.${DOM_CLASSES.added}`).value) || 0
             }))
             .filter(row => row.year > 0)
             .sort((a, b) => a.year - b.year);
     }
 
     getSettings() {
-        const dob = Temporal.PlainDate.from(this.dobInput.value || '1980-01-01');
+        const dobInput = document.querySelector(`#${DOM_IDS.dob}`);
+
+        let dob;
+
+        try {
+            dob = Temporal.PlainDate.from(dobInput.value || DEFAULT_DOB);
+        } catch {
+            dob = Temporal.PlainDate.from(DEFAULT_DOB);
+        }
+
         return { dob };
     }
 
@@ -402,7 +592,7 @@ class HistoricSalaryUI {
                 continue;
             }
 
-            const purchasedAp = row.period === 'month'
+            const purchasedAp = row.period === ADDED_PENSION_PERIOD.MONTH
                 ? row.added * 12
                 : row.added;
 
@@ -533,16 +723,17 @@ class HistoricSalaryUI {
     }
 
     updateUI(totals) {
-        this.totalSalary.textContent = this.formatCurrency(totals.totalSalary);
-        this.totalSalaryContributions.textContent = this.formatCurrency(totals.totalSalaryContributions);
-        this.totalAdded.textContent = this.formatCurrency(totals.totalAdded);
-        this.totalSalaryPension.textContent = this.formatCurrency(totals.salaryPension);
-        this.totalAddedPension.textContent = this.formatCurrency(totals.addedPension);
-        this.totalCombined.textContent = this.formatCurrency(totals.salaryPension + totals.addedPension);
+        document.querySelector(`#${DOM_IDS.totalSalary}`).textContent = this.formatCurrency(totals.totalSalary);
+        document.querySelector(`#${DOM_IDS.totalSalaryContributions}`).textContent = this.formatCurrency(totals.totalSalaryContributions);
+        document.querySelector(`#${DOM_IDS.totalAdded}`).textContent = this.formatCurrency(totals.totalAdded);
+        document.querySelector(`#${DOM_IDS.totalSalaryPension}`).textContent = this.formatCurrency(totals.salaryPension);
+        document.querySelector(`#${DOM_IDS.totalAddedPension}`).textContent = this.formatCurrency(totals.addedPension);
+        document.querySelector(`#${DOM_IDS.totalCombined}`).textContent = this.formatCurrency(totals.salaryPension + totals.addedPension);
     }
 
     renderBreakdown(rows) {
-        this.breakdownBody.innerHTML = '';
+        const breakdownBody = document.querySelector(`#${DOM_IDS.breakdownTable} tbody`);
+        breakdownBody.innerHTML = '';
 
         let cumulativePensionAdjustedToPresentYear = 0;
         let closingSpAdjustedToPresentYear = 0;
@@ -583,59 +774,59 @@ class HistoricSalaryUI {
             const tr = document.createElement('tr');
 
             tr.innerHTML = `
-                <td class="info group-start sticky-col sticky-year">${startYearLastTwo}/${endYearLastTwo}</td>
-                <td class="info sticky-col sticky-age">${row.age}</td>
+                <td class="${DOM_CLASSES.info} ${DOM_CLASSES.groupStart} ${DOM_CLASSES.stickyCol} ${DOM_CLASSES.stickyYear}">${startYearLastTwo}/${endYearLastTwo}</td>
+                <td class="${DOM_CLASSES.info} ${DOM_CLASSES.stickyCol} ${DOM_CLASSES.stickyAge}">${row.age}</td>
 
-                <td class="sp-info group-start">${this.formatCurrency(spLedger.opening)}</td>
-                <td class="sp-info">${this.formatCurrency(row.sp.input)}</td>
-                <td class="sp-info">${this.formatCurrency(row.sp.unadjusted)}</td>
-                <td class="sp-info">${(cpi || 0).toFixed(1)}</td>
-                <td class="sp-info">${this.formatCurrency(spLedger.inflationChange)}</td>
-                <td class="sp-info">${this.formatCurrency(spLedger.closing)}</td>
+                <td class="${DOM_CLASSES.spInfo} ${DOM_CLASSES.groupStart}">${this.formatCurrency(spLedger.opening)}</td>
+                <td class="${DOM_CLASSES.spInfo}">${this.formatCurrency(row.sp.input)}</td>
+                <td class="${DOM_CLASSES.spInfo}">${this.formatCurrency(row.sp.unadjusted)}</td>
+                <td class="${DOM_CLASSES.spInfo}">${(cpi || 0).toFixed(1)}</td>
+                <td class="${DOM_CLASSES.spInfo}">${this.formatCurrency(spLedger.inflationChange)}</td>
+                <td class="${DOM_CLASSES.spInfo}">${this.formatCurrency(spLedger.closing)}</td>
 
-                <td class="sp-info-extra group-start">${this.formatCurrency(row.sp.adjustedToPresent)}</td>
-                <td class="sp-info-extra">${this.formatCurrency(closingSpAdjustedToPresentYear)}</td>
+                <td class="${DOM_CLASSES.spInfoExtra} ${DOM_CLASSES.groupStart}">${this.formatCurrency(row.sp.adjustedToPresent)}</td>
+                <td class="${DOM_CLASSES.spInfoExtra}">${this.formatCurrency(closingSpAdjustedToPresentYear)}</td>
 
                 ${this.renderApLedgerCells(apTotal, ADDED_PENSION_GROUP.TOTAL)}
 
-                <td class="ap-info-extra group-start">${this.formatCurrency(row.ap.adjustedToPresent)}</td>
-                <td class="ap-info-extra">${this.formatCurrency(apTotal.closingAdjustedToPresent)}</td>
+                <td class="${DOM_CLASSES.apInfoExtra} ${DOM_CLASSES.groupStart}">${this.formatCurrency(row.ap.adjustedToPresent)}</td>
+                <td class="${DOM_CLASSES.apInfoExtra}">${this.formatCurrency(apTotal.closingAdjustedToPresent)}</td>
 
                 ${this.renderApLedgerCells(apSelf, ADDED_PENSION_GROUP.SELF)}
                 ${this.renderApLedgerCells(apDependants, ADDED_PENSION_GROUP.DEPENDANTS)}
 
-                <td class="info group-start">${this.formatCurrency(row.totalAdjustedToPresent)}</td>
-                <td class="info">${this.formatCurrency(cumulativePensionAdjustedToPresentYear)}</td>
+                <td class="${DOM_CLASSES.info} ${DOM_CLASSES.groupStart}">${this.formatCurrency(row.totalAdjustedToPresent)}</td>
+                <td class="${DOM_CLASSES.info}">${this.formatCurrency(cumulativePensionAdjustedToPresentYear)}</td>
             `;
 
-            this.breakdownBody.appendChild(tr);
+            breakdownBody.appendChild(tr);
         }
 
-        this.ensureBreakdownSorter();
+        this.enhanceBreakdownTable();
         this.applyBreakdownColumnVisibility();
 
-        if (this.breakdownSorter) {
-            this.breakdownSorter.refresh();
+        if (this.enhancedBreakdownTable) {
+            this.enhancedBreakdownTable.refresh();
         }
     }
 
     renderApLedgerCells(apLedgerResult, group) {
         const { summary, ledger } = apLedgerResult;
-        const groupClass = ADDED_PENSION_GROUP_CLASS[group];
+        const groupClass = DOM_CLASSES.addedPensionGroup[group];
 
         return `
-            <td class="ap-info ${groupClass} group-start">${this.formatCurrency(ledger.opening)}</td>
-            <td class="ap-info ${groupClass}">${this.formatCurrency(summary.input)}</td>
-            <td class="ap-info ${groupClass}">${this.formatCurrency(summary.unadjusted)}</td>
-            <td class="ap-info ${groupClass}">${this.formatCurrency(ledger.inflationChange)}</td>
-            <td class="ap-info ${groupClass}">${this.formatCurrency(ledger.closing)}</td>
+            <td class="${DOM_CLASSES.apInfo} ${groupClass} ${DOM_CLASSES.groupStart}">${this.formatCurrency(ledger.opening)}</td>
+            <td class="${DOM_CLASSES.apInfo} ${groupClass}">${this.formatCurrency(summary.input)}</td>
+            <td class="${DOM_CLASSES.apInfo} ${groupClass}">${this.formatCurrency(summary.unadjusted)}</td>
+            <td class="${DOM_CLASSES.apInfo} ${groupClass}">${this.formatCurrency(ledger.inflationChange)}</td>
+            <td class="${DOM_CLASSES.apInfo} ${groupClass}">${this.formatCurrency(ledger.closing)}</td>
         `;
     }
 
-    ensureBreakdownSorter() {
-        if (this.breakdownSorter) return;
+    enhanceBreakdownTable() {
+        if (this.enhancedBreakdownTable) return;
 
-        this.breakdownSorter = new TableEnhancer(this.breakdownTableId, {
+        this.enhancedBreakdownTable = new TableEnhancer(DOM_IDS.breakdownTable, {
             searchable: true,
             searchPlaceholder: 'Search years, age...',
             rowHover: true,
@@ -688,13 +879,14 @@ class HistoricSalaryUI {
     }
 
     renderBreakdownColumnControls() {
-        if (!this.breakdownColumnControls) return;
+        const breakdownColumnControls = document.querySelector(`#${DOM_IDS.breakdownColumnControls}`);
+        if (!breakdownColumnControls) return;
 
-        this.breakdownColumnControls.innerHTML = '';
+        breakdownColumnControls.innerHTML = '';
 
         for (const [groupKey, groupLabel] of Object.entries(BREAKDOWN_COLUMN_GROUPS)) {
             const label = document.createElement('label');
-            label.className = 'column-toggle';
+            label.className = DOM_CLASSES.columnToggle;
 
             const input = document.createElement('input');
             input.type = 'checkbox';
@@ -706,7 +898,7 @@ class HistoricSalaryUI {
             });
 
             label.append(input, document.createTextNode(groupLabel));
-            this.breakdownColumnControls.appendChild(label);
+            breakdownColumnControls.appendChild(label);
         }
     }
 
@@ -716,14 +908,14 @@ class HistoricSalaryUI {
 
         const hiddenColumnIndexes = this.getColumnIndexesForGroup(groupKey);
 
-        if (!visible && this.breakdownSorter) {
-            this.breakdownSorter.removeSortForColumns(hiddenColumnIndexes);
+        if (!visible && this.enhancedBreakdownTable) {
+            this.enhancedBreakdownTable.removeSortForColumns(hiddenColumnIndexes);
         }
 
         this.applyBreakdownColumnVisibility();
 
-        if (this.breakdownSorter) {
-            this.breakdownSorter.refresh();
+        if (this.enhancedBreakdownTable) {
+            this.enhancedBreakdownTable.refresh();
         }
     }
 
@@ -734,7 +926,7 @@ class HistoricSalaryUI {
     }
 
     applyBreakdownColumnVisibility() {
-        const table = document.getElementById(this.breakdownTableId);
+        const table = document.querySelector(`#${DOM_IDS.breakdownTable}`);
         if (!table) return;
 
         for (const column of BREAKDOWN_COLUMNS) {
@@ -742,6 +934,7 @@ class HistoricSalaryUI {
 
             table.querySelectorAll('tr').forEach(row => {
                 const cell = row.children[column.index];
+
                 if (cell) {
                     cell.hidden = !visible;
                 }
@@ -752,11 +945,11 @@ class HistoricSalaryUI {
     }
 
     updateVisibleGroupStarts() {
-        const table = document.getElementById(this.breakdownTableId);
+        const table = document.querySelector(`#${DOM_IDS.breakdownTable}`);
         if (!table) return;
 
-        table.querySelectorAll('.group-start').forEach(cell => {
-            cell.classList.remove('group-start');
+        table.querySelectorAll(`.${DOM_CLASSES.groupStart}`).forEach(cell => {
+            cell.classList.remove(DOM_CLASSES.groupStart);
         });
 
         for (const groupKey of Object.keys(BREAKDOWN_COLUMN_GROUPS)) {
@@ -773,7 +966,7 @@ class HistoricSalaryUI {
                 const cell = row.children[firstVisibleColumn.index];
 
                 if (cell && !cell.hidden) {
-                    cell.classList.add('group-start');
+                    cell.classList.add(DOM_CLASSES.groupStart);
                 }
             });
         }
@@ -787,49 +980,62 @@ class HistoricSalaryUI {
         }).format(value);
     }
 
-    formatSigned(value) {
-        const sign = value > 0 ? '+' : '';
-        return `${sign}${this.formatCurrency(value)}`;
-    }
-
     saveState(salaryRows, addedRows, settings) {
-        localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({
-                salaryRows,
-                addedRows,
-                settings
-            })
-        );
+        const state = {
+            version: STATE_VERSION,
+            salaryRows,
+            addedRows,
+            settings: {
+                dob: settings.dob.toString()
+            }
+        };
+
+        const validation = validateHistoricSalaryState(state);
+
+        if (!validation.valid) {
+            console.error('Refusing to save invalid historic salary state', validation.errors);
+            return;
+        }
+
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+        } catch (error) {
+            console.error('Failed to save historic salary state', error);
+        }
     }
 
     loadState() {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const saved = localStorage.getItem(this.STORAGE_KEY);
         if (!saved) return;
 
         try {
             const state = JSON.parse(saved);
+            const validation = validateHistoricSalaryState(state);
 
-            if (state.settings) {
-                this.dobInput.value = state.settings.dob ?? this.dobInput.value;
+            if (!validation.valid) {
+                console.warn('Invalid saved historic salary state', validation.errors);
+                alert(`Your saved settings appear to be invalid and could not be loaded.\n\n${formatValidationErrors(validation.errors)}`);
+                return;
             }
 
-            if (Array.isArray(state.salaryRows)) {
-                this.salaryTableBody.innerHTML = '';
-                state.salaryRows.forEach(row => this.addSalaryRow(row));
-            }
+            const dobInput = document.querySelector(`#${DOM_IDS.dob}`);
+            dobInput.value = state.settings.dob ?? dobInput.value;
 
-            if (Array.isArray(state.addedRows)) {
-                this.addedTableBody.innerHTML = '';
-                state.addedRows.forEach(row => this.addAddedRow(row));
-            }
+            const salaryTableBody = document.querySelector(`#${DOM_IDS.salaryTable} tbody`);
+            salaryTableBody.innerHTML = '';
+            state.salaryRows.forEach(row => this.addSalaryRow(row));
+
+            const addedTableBody = document.querySelector(`#${DOM_IDS.addedTable} tbody`);
+            addedTableBody.innerHTML = '';
+            state.addedRows.forEach(row => this.addAddedRow(row));
         } catch (error) {
             console.warn('Failed to load historic salary state', error);
+            alert('Your saved settings could not be loaded because they are not valid JSON.');
         }
     }
 
     exportState() {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const saved = localStorage.getItem(this.STORAGE_KEY);
 
         if (!saved) {
             alert('No settings found to export.');
@@ -838,6 +1044,13 @@ class HistoricSalaryUI {
 
         try {
             const state = JSON.parse(saved);
+            const validation = validateHistoricSalaryState(state);
+
+            if (!validation.valid) {
+                alert(`Your saved settings appear to be invalid and cannot be exported.\n\n${formatValidationErrors(validation.errors)}`);
+                return;
+            }
+
             const prettyJsonString = JSON.stringify(state, null, 2);
 
             const blob = new Blob([prettyJsonString], { type: 'application/json' });
