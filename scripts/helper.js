@@ -1,5 +1,3 @@
-import { cpiSeptember } from "../scripts/cpi-september.js";
-
 export class Helpers {
     /**
     * Calculation date for 19/20 will be 01 April 2019.
@@ -93,56 +91,5 @@ export class Helpers {
     */
     static getCurrentYear() {
         return Temporal.Now.plainDateISO().year;
-    }
-
-    /**
-    * 
-    * 
-    * @returns {number} Adjusted contributions
-    */
-    static getCpiAdjustedValue(schemeStartYear, value, lastSchemeStartYear) {
-        // Example: for 25/26 statement is the latest statement
-        // Contributions should not be adjusted
-        if (schemeStartYear === lastSchemeStartYear)
-            return value;
-
-        // adjustment must be applied yearly
-        while (schemeStartYear <= lastSchemeStartYear) {
-            const cpiForSchemeStartYear = cpiSeptember[schemeStartYear];
-            const cpiForPreviousYear = cpiSeptember[schemeStartYear - 1];
-            const cpiFactor = cpiForSchemeStartYear / cpiForPreviousYear;
-            value = Number.isNaN(cpiFactor) ? value : value * cpiFactor;
-            schemeStartYear++;
-        }
-
-        return value;
-    }
-
-    /**
-    * 
-    * 
-    * @returns {number} Adjusted contributions
-    */
-    static getSingleYearCpiAdjustedValue(year, value) {
-        const cpiForSchemeStartYear = cpiSeptember[year];
-        const cpiForPreviousYear = cpiSeptember[year - 1];
-        const cpiFactor = cpiForSchemeStartYear / cpiForPreviousYear;
-        value = Number.isNaN(cpiFactor) ? value : value * cpiFactor;
-        return value;
-    }
-
-    /**
-    * 
-    * 
-    * @returns {number} Adjusted contributions
-    */
-    static getSingleYearCpi(year) {
-        const cpiForSchemeStartYear = cpiSeptember[year];
-        const cpiForPreviousYear = cpiSeptember[year - 1];
-        if (Number.isNaN(cpiForSchemeStartYear / cpiForPreviousYear))
-            return 0;
-
-        const cpiFactor = ((cpiForSchemeStartYear / cpiForPreviousYear) - 1) * 100;
-        return cpiFactor;
     }
 }

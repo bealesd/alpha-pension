@@ -1,6 +1,7 @@
 ﻿import { AddedPension } from "../scripts/added-pension.js";
 import { cpiSeptember } from "../scripts/cpi-september.js";
 import { Helpers } from "../scripts/helper.js";
+import { CpiHelper } from "../scripts/cpi-helper.js";
 import TableEnhancer from "../scripts/table-enhancer.js";
 import { EmployeeContributions } from "../scripts/employee-contributions.js";
 
@@ -36,6 +37,7 @@ const DOM_IDS = Object.freeze({
     importButton: 'importBtn',
     importFile: 'importFile',
     dob: 'dob',
+    cpi: 'cpi',
 
     salaryRowTemplate: 'salary-row',
     addedRowTemplate: 'added-row'
@@ -259,6 +261,9 @@ function validateHistoricSalaryState(state) {
         errors.push('settings must be an object.');
     } else if (!isValidDob(state.settings.dob)) {
         errors.push('settings.dob must be a valid ISO date string.');
+    } else if (state.settings.cpi !== undefined &&
+        !isNonNegativeNumber(state.settings.cpi)) {
+        errors.push('settings.cpi must be a non negative number.');
     }
 
     return {
@@ -273,6 +278,7 @@ function formatValidationErrors(errors) {
 
 class HistoricSalaryUI {
     constructor() {
+        this.cpiHelper = new CpiHelper();
         const params = new URLSearchParams(window.location.search);
         this.STORAGE_KEY = params.get("storageKey") || "historic-salary-state";
 
@@ -282,8 +288,8 @@ class HistoricSalaryUI {
 
         this.registerEventListeners();
 
-        const inflationMax = Math.max(...Object.keys(cpiSeptember).map(Number));
-        document.querySelector(`#${DOM_IDS.inflationInfo}`).textContent = `The calculator has no historical inflation figures for September ${inflationMax + 1} and beyond. Any calculation beyond ${inflationMax + 1} will not be adjusted for inflation.`;
+        const lastYearOfCpi = Math.max(...Object.keys(cpiSeptember).map(Number));
+        document.querySelector(`#${DOM_IDS.inflationInfo}`).textContent = `The calculator has no historical inflation figures for September ${lastYearOfCpi + 1} and beyond. Any calculation beyond ${lastYearOfCpi + 1} will be adjusted by user inflation.`;
 
         this.updateCurrentYearForYearlyBreakdownHeaders();
         this.renderBreakdownColumnControls();
@@ -305,6 +311,7 @@ class HistoricSalaryUI {
         const importButton = document.querySelector(`#${DOM_IDS.importButton}`);
         const importFile = document.querySelector(`#${DOM_IDS.importFile}`);
         const dobInput = document.querySelector(`#${DOM_IDS.dob}`);
+        const cpiInput = document.querySelector(`#${DOM_IDS.cpi}`);
         const themeToggle = document.querySelector(`#${DOM_IDS.themeToggle}`);
 
         addSalaryRowButton.addEventListener('click', this.handleAddSalaryRow.bind(this));
@@ -324,6 +331,7 @@ class HistoricSalaryUI {
 
         importFile.addEventListener('change', this.handleImportFile.bind(this));
         dobInput.addEventListener('input', this.handleInput.bind(this));
+        cpiInput.addEventListener('input', this.handleInput.bind(this));
         themeToggle.addEventListener('click', this.handleThemeToggle.bind(this));
     }
 
@@ -505,16 +513,17 @@ class HistoricSalaryUI {
 
     getSettings() {
         const dobInput = document.querySelector(`#${DOM_IDS.dob}`);
-
         let dob;
-
         try {
             dob = Temporal.PlainDate.from(dobInput.value || DEFAULT_DOB);
         } catch {
             dob = Temporal.PlainDate.from(DEFAULT_DOB);
         }
 
-        return { dob };
+        const cpiInput = document.querySelector(`#${DOM_IDS.cpi}`);
+        const cpi = Number(cpiInput.value) || 0;
+
+        return { dob, cpi };
     }
 
     estimateSalaryPension(row) {
@@ -533,8 +542,8 @@ class HistoricSalaryUI {
 
     calculateLedgerRow(year, currentBalance, newContributions) {
         const opening = currentBalance;
-        const openingAdjusted = Helpers.getSingleYearCpiAdjustedValue(year, opening);
-        const addedAdjusted = Helpers.getSingleYearCpiAdjustedValue(year, newContributions);
+        const openingAdjusted = this.cpiHelper.getSingleYearCpiAdjustedValue(year, opening);
+        const addedAdjusted = this.cpiHelper.getSingleYearCpiAdjustedValue(year, newContributions);
 
         const inflationChange = (openingAdjusted - opening) + (addedAdjusted - newContributions);
         const closing = openingAdjusted + addedAdjusted;
@@ -560,11 +569,11 @@ class HistoricSalaryUI {
         const input = salaryRow ? salaryRow.salary : 0;
         const unadjusted = salaryRow ? this.estimateSalaryPension(salaryRow) : 0;
 
-        const adjustedToPresent = Helpers.getCpiAdjustedValue(
-            schemeStartDate.year,
-            unadjusted,
-            this.currentYear
-        );
+        const adjustedToPresent = this.cpiHelper.getCpiAdjustedValue({
+            startYear: schemeStartDate.year,
+            endYear: this.currentYear,
+            value: unadjusted
+        });
 
         const outOfPocketCost = EmployeeContributions.calculateCost(
             schemeStartDate.year,
@@ -584,7 +593,7 @@ class HistoricSalaryUI {
             [ADDED_PENSION_GROUP.TOTAL]: this.getEmptyPensionSummary(),
             [ADDED_PENSION_GROUP.SELF]: this.getEmptyPensionSummary(),
             [ADDED_PENSION_GROUP.DEPENDANTS]: this.getEmptyPensionSummary()
-        };
+        };      
 
         for (const row of addedRowsForYear) {
             if (!isAddedPensionType(row.type)) {
@@ -604,11 +613,11 @@ class HistoricSalaryUI {
                 row.actuaryVersion
             );
 
-            const adjustedToPresent = Helpers.getCpiAdjustedValue(
-                schemeStartDate.year,
-                amount,
-                this.currentYear
-            );
+            const adjustedToPresent = this.cpiHelper.getCpiAdjustedValue({
+                startYear: schemeStartDate.year,
+                endYear: this.currentYear,
+                value: amount
+            });
 
             const contribution = {
                 input: purchasedAp,
@@ -677,6 +686,9 @@ class HistoricSalaryUI {
             .map(Number)
             .sort((a, b) => a - b);
 
+        const maxYear = Math.max(...allYears);
+        this.cpiHelper.addFutureYearsToCpiData({ endYear: maxYear, fallbackCpiRate: settings.cpi });
+
         let totalSalaryPension = 0;
         let totalAddedPension = 0;
 
@@ -742,7 +754,7 @@ class HistoricSalaryUI {
         const apLedgerStates = this.createApLedgerStates();
 
         for (const row of rows) {
-            const cpi = Helpers.getSingleYearCpi(row.year);
+            const cpi = this.cpiHelper.getSingleYearCpi(row.year);
 
             cumulativePensionAdjustedToPresentYear += row.totalAdjustedToPresent;
 
@@ -986,7 +998,8 @@ class HistoricSalaryUI {
             salaryRows,
             addedRows,
             settings: {
-                dob: settings.dob.toString()
+                dob: settings.dob.toString(),
+                cpi: settings.cpi
             }
         };
 
@@ -1020,6 +1033,9 @@ class HistoricSalaryUI {
 
             const dobInput = document.querySelector(`#${DOM_IDS.dob}`);
             dobInput.value = state.settings.dob ?? dobInput.value;
+
+            const cpiInput = document.querySelector(`#${DOM_IDS.cpi}`);
+            cpiInput.value = state.settings.cpi ?? Number(cpiInput.value);
 
             const salaryTableBody = document.querySelector(`#${DOM_IDS.salaryTable} tbody`);
             salaryTableBody.innerHTML = '';

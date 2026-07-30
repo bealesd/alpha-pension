@@ -78,7 +78,7 @@ describe("UI Tests", () => {
             type: 'self',
             actuaryVersion: '2019-07'
         }
-        const expectedAddedPension = '£150';
+        const expectedAddedPension = '£156';
 
         // Act
         iFrameDocument.querySelector('#add-added-row').click();
@@ -109,7 +109,7 @@ describe("UI Tests", () => {
             bubbles: true
         }));
 
-        const addedPension = iFrameDocument.querySelector("#breakdown-table tr > td:nth-child(12)").textContent;
+        const addedPension = iFrameDocument.querySelector("#breakdown-table tr > td:nth-child(15)").textContent;
 
         // Assert
         expect(addedPension).toEqual(expectedAddedPension);
