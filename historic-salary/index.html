@@ -14,9 +14,9 @@
             <h2>Historic Salary Pension Explorer</h2>
 
             <div class="header-actions">
-                <input type="file" id="importFile" accept=".json" hidden>
+                <input type="file" id="import-file" accept=".json" hidden>
 
-                <button type="button" class="theme-toggle" id="importBtn" title="Import Settings"
+                <button type="button" class="theme-toggle" id="import-btn" title="Import Settings"
                     aria-label="Import Settings">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24" aria-hidden="true">
                         <path
@@ -24,7 +24,7 @@
                     </svg>
                 </button>
 
-                <button type="button" class="theme-toggle" id="exportBtn" title="Export Settings"
+                <button type="button" class="theme-toggle" id="export-btn" title="Export Settings"
                     aria-label="Export Settings">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24" aria-hidden="true">
                         <path
@@ -60,7 +60,9 @@
         </header>
 
         <section class="section">
-            <p class="intro" id="inflation-info"></p>
+            <p class="intro" id="inflation-info">
+                The calculator has no historical inflation figures beyond September <span data-bind="last-year-of-cpi"></span>. 
+                Any later calculations will be adjusted by user inflation.</p>
         </section>
 
         <section class="section">

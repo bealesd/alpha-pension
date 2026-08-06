@@ -1,120 +1,130 @@
-import { TestRunner } from "https://cdn.jsdelivr.net/gh/bealesd/js-test@ed5595d752bd49012cacd31966edd6fe3f737704/source/test-runner.js"
 
-const runner = TestRunner.getInstance();
-const { it, fit, describe, expect, spy, beforeEach, afterEach } = runner;
 
 let iframe;
 let iFrameDocument;
 
-describe("UI Tests", () => {
-    beforeEach(async () => {
-        await loadHistoricSalaryIframe();
-    });
+export function registerTests(runner) {
+    const {
+        it,
+        fit,
+        xfail,
+        describe,
+        expect,
+        spy,
+        beforeEach,
+        afterEach
+    } = runner;
 
-    afterEach(() => {
-        removeHistoricSalaryIframe();
-    });
+    describe("UI Tests", () => {
+        beforeEach(async () => {
+            await loadHistoricSalaryIframe();
+        });
 
-    it("Check a single 2015 salary returns expected pension for that year", async () => {
-        // Arrange
-        const salaryInfo = {
-            year: 2015,
-            salary: 24407
-        }
-        const expectedSalaryPensionIn2015 = '£566';
+        afterEach(() => {
+            removeHistoricSalaryIframe();
+        });
 
-        // Act
-        iFrameDocument.querySelector('#add-salary-row').click();
-        const salaryInputFirstRow = iFrameDocument.querySelectorAll('#salary-table tr td input');
-        const yearInput = salaryInputFirstRow[0];
-        yearInput.value = salaryInfo.year;
-        const salaryInput = salaryInputFirstRow[1];
-        salaryInput.value = salaryInfo.salary;
+        it("Check a single 2015 salary returns expected pension for that year", async () => {
+            // Arrange
+            const salaryInfo = {
+                year: 2015,
+                salary: 24407
+            }
+            const expectedSalaryPensionIn2015 = '£566';
 
-        const iframeWindow = iframe.contentWindow;
-        salaryInput.dispatchEvent(new iframeWindow.Event("input", {
-            bubbles: true
-        }));
+            // Act
+            iFrameDocument.querySelector('#add-salary-row').click();
+            const salaryInputFirstRow = iFrameDocument.querySelectorAll('#salary-table tr td input');
+            const yearInput = salaryInputFirstRow[0];
+            yearInput.value = salaryInfo.year;
+            const salaryInput = salaryInputFirstRow[1];
+            salaryInput.value = salaryInfo.salary;
 
-        const salaryPension = iFrameDocument.querySelector("#breakdown-table tr > td:nth-child(5)").textContent;
+            const iframeWindow = iframe.contentWindow;
+            salaryInput.dispatchEvent(new iframeWindow.Event("input", {
+                bubbles: true
+            }));
 
-        // Assert
-        expect(salaryPension).toEqual(expectedSalaryPensionIn2015);
-    });
+            const salaryPension = iFrameDocument.querySelector("#breakdown-table tr > td:nth-child(5)").textContent;
 
-    it("Check a single 2023 salary returns expected pension for that year", async () => {
-        // Arrange
-        const salaryInfo = {
-            year: 2023,
-            salary: 57131
-        }
-        const expectedSalaryPension = '£1,325';
+            // Assert
+            expect(salaryPension).toEqual(expectedSalaryPensionIn2015);
+        });
 
-        // Act
-        iFrameDocument.querySelector('#add-salary-row').click();
-        const salaryInputFirstRow = iFrameDocument.querySelectorAll('#salary-table tr td input');
-        const yearInput = salaryInputFirstRow[0];
-        yearInput.value = salaryInfo.year;
-        const salaryInput = salaryInputFirstRow[1];
-        salaryInput.value = salaryInfo.salary;
+        it("Check a single 2023 salary returns expected pension for that year", async () => {
+            // Arrange
+            const salaryInfo = {
+                year: 2023,
+                salary: 57131
+            }
+            const expectedSalaryPension = '£1,325';
 
-        const iframeWindow = iframe.contentWindow;
-        salaryInput.dispatchEvent(new iframeWindow.Event("input", {
-            bubbles: true
-        }));
+            // Act
+            iFrameDocument.querySelector('#add-salary-row').click();
+            const salaryInputFirstRow = iFrameDocument.querySelectorAll('#salary-table tr td input');
+            const yearInput = salaryInputFirstRow[0];
+            yearInput.value = salaryInfo.year;
+            const salaryInput = salaryInputFirstRow[1];
+            salaryInput.value = salaryInfo.salary;
 
-        const salaryPension = iFrameDocument.querySelector("#breakdown-table tr > td:nth-child(5)").textContent;
+            const iframeWindow = iframe.contentWindow;
+            salaryInput.dispatchEvent(new iframeWindow.Event("input", {
+                bubbles: true
+            }));
 
-        // Assert
-        expect(salaryPension).toEqual(expectedSalaryPension);
-    });
+            const salaryPension = iFrameDocument.querySelector("#breakdown-table tr > td:nth-child(5)").textContent;
 
-    it("Check a single 2023 added pension returns expected pension for that year", async () => {
-        // Arrange
-        const addedPensionInfo = {
-            year: 2023,
-            amount: 1428,
-            period: 'year',
-            type: 'self',
-            actuaryVersion: '2019-07'
-        }
-        const expectedAddedPension = '£156';
+            // Assert
+            expect(salaryPension).toEqual(expectedSalaryPension);
+        });
 
-        // Act
-        iFrameDocument.querySelector('#add-added-row').click();
-        const addedPensionInputFirstRow = iFrameDocument.querySelectorAll('#added-table tr td input');
+        it("Check a single 2023 added pension returns expected pension for that year", async () => {
+            // Arrange
+            const addedPensionInfo = {
+                year: 2023,
+                amount: 1428,
+                period: 'year',
+                type: 'self',
+                actuaryVersion: '2019-07'
+            }
+            const expectedAddedPension = '£156';
 
-        const yearInput = addedPensionInputFirstRow[0];
-        yearInput.value = addedPensionInfo.year;
+            // Act
+            iFrameDocument.querySelector('#add-added-row').click();
+            const addedPensionInputFirstRow = iFrameDocument.querySelectorAll('#added-table tr td input');
 
-        const amountInput = addedPensionInputFirstRow[1];
-        amountInput.value = addedPensionInfo.amount;
+            const yearInput = addedPensionInputFirstRow[0];
+            yearInput.value = addedPensionInfo.year;
 
-        const addedPensionSelectFirstRow = iFrameDocument.querySelectorAll('#added-table tr td select');
+            const amountInput = addedPensionInputFirstRow[1];
+            amountInput.value = addedPensionInfo.amount;
 
-        const actuaryInput = addedPensionSelectFirstRow[0];
-        const actuaryIndex = [...actuaryInput.options].find(o => o.value === addedPensionInfo.actuaryVersion).index;
-        actuaryInput.selectedIndex = actuaryIndex;
+            const addedPensionSelectFirstRow = iFrameDocument.querySelectorAll('#added-table tr td select');
 
-        const typeInput = addedPensionSelectFirstRow[1];
-        const typeIndex = [...typeInput.options].find(o => o.value === addedPensionInfo.type).index;
-        typeInput.selectedIndex = typeIndex;
+            const actuaryInput = addedPensionSelectFirstRow[0];
+            const actuaryIndex = [...actuaryInput.options].find(o => o.value === addedPensionInfo.actuaryVersion).index;
+            actuaryInput.selectedIndex = actuaryIndex;
 
-        const periodInput = addedPensionSelectFirstRow[2];
-        const periodIndex = [...periodInput.options].find(o => o.value === addedPensionInfo.period).index;
-        periodInput.selectedIndex = periodIndex;
+            const typeInput = addedPensionSelectFirstRow[1];
+            const typeIndex = [...typeInput.options].find(o => o.value === addedPensionInfo.type).index;
+            typeInput.selectedIndex = typeIndex;
 
-        const iframeWindow = iframe.contentWindow;
-        amountInput.dispatchEvent(new iframeWindow.Event("input", {
-            bubbles: true
-        }));
+            const periodInput = addedPensionSelectFirstRow[2];
+            const periodIndex = [...periodInput.options].find(o => o.value === addedPensionInfo.period).index;
+            periodInput.selectedIndex = periodIndex;
 
-        const addedPension = iFrameDocument.querySelector("#breakdown-table tr > td:nth-child(15)").textContent;
+            const iframeWindow = iframe.contentWindow;
+            amountInput.dispatchEvent(new iframeWindow.Event("input", {
+                bubbles: true
+            }));
 
-        // Assert
-        expect(addedPension).toEqual(expectedAddedPension);
-    });
-})
+            const addedPension = iFrameDocument.querySelector("#breakdown-table tr > td:nth-child(15)").textContent;
+
+            // Assert
+            expect(addedPension).toEqual(expectedAddedPension);
+        });
+    })
+}
 
 async function loadHistoricSalaryIframe() {
     iframe = document.createElement("iframe");

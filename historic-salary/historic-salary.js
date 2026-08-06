@@ -33,9 +33,9 @@ const DOM_IDS = Object.freeze({
     totalCombined: 'total-combined',
 
     inflationInfo: 'inflation-info',
-    exportButton: 'exportBtn',
-    importButton: 'importBtn',
-    importFile: 'importFile',
+    exportButton: 'export-btn',
+    importButton: 'import-btn',
+    importFile: 'import-file',
     dob: 'dob',
     cpi: 'cpi',
 
@@ -44,7 +44,8 @@ const DOM_IDS = Object.freeze({
 });
 
 const DOM_BINDINGS = Object.freeze({
-    currentYear: 'current-year'
+    currentYear: 'current-year',
+    lastYearOfCpi: 'last-year-of-cpi',
 });
 
 const ADDED_PENSION_TYPE = Object.freeze({
@@ -289,7 +290,9 @@ class HistoricSalaryUI {
         this.registerEventListeners();
 
         const lastYearOfCpi = Math.max(...Object.keys(cpiSeptember).map(Number));
-        document.querySelector(`#${DOM_IDS.inflationInfo}`).textContent = `The calculator has no historical inflation figures for September ${lastYearOfCpi + 1} and beyond. Any calculation beyond ${lastYearOfCpi + 1} will be adjusted by user inflation.`;
+        document.querySelectorAll(`[data-bind="${DOM_BINDINGS.lastYearOfCpi}"]`).forEach(el => {
+            el.textContent = `${lastYearOfCpi}`;
+        });
 
         this.updateCurrentYearForYearlyBreakdownHeaders();
         this.renderBreakdownColumnControls();

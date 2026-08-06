@@ -8,12 +8,12 @@
 
 <body>
     <script type="module">
-        import { TestRunner } from "https://cdn.jsdelivr.net/gh/bealesd/js-test@main/source/test-runner.js";
+        import { TestRunner } from "https://cdn.jsdelivr.net/gh/bealesd/js-test@c158302ecdb04bd48bca747266a8c2f2fa726809/source/test-runner.js";
         let baseURL = window.location.origin;
         if (window.location.origin === 'https://bealesd.github.io')
             baseURL = `${window.location.origin}/alpha-pension`;
 
-         TestRunner.runWithTestFiles([
+        TestRunner.runWithTestFiles([
             `${baseURL}/tests/ui-tests.js`,
         ]);
     </script>
