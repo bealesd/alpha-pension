@@ -1,4 +1,4 @@
-import { Helpers } from "./helper.js";
+import { Helpers } from "../../scripts/helper.js";
 
 export class RegularPension {
 

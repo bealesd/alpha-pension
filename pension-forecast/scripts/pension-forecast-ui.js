@@ -1,4 +1,4 @@
-import { TotalPension } from "./total-pension.js";
+import { TotalPension } from "./pension-forecast.js";
 
 const DOM_IDS = Object.freeze({
     form: 'pension-form',
