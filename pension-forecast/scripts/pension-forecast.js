@@ -1,6 +1,6 @@
 import { RegularPension } from "./regular-pension.js";
 import { AddedPension } from "../../scripts/added-pension.js";
-import earlyPaymentReductionFactorsForNpa from "../../scripts/early-payment-reduction-factors-for-npa-2025-02.js";
+import earlyPaymentReductionFactorsForNpa from "../../data/factors/early-payment-reduction-factors-for-npa-2025-02.js";
 
 export class TotalPension {
     calculate(memberData) {

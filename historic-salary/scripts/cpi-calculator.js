@@ -1,6 +1,6 @@
-import { cpiSeptember } from "./cpi-september.js";
+import { cpiSeptember } from "../../data/inflation/cpi-september.js";
 
-export class CpiHelper {
+export class CpiCalculator {
     cpiLocal = {}
 
     /**

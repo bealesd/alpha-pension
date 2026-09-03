@@ -1,4 +1,4 @@
-export class Helpers {
+export class MemberTimeline  {
     /**
     * Calculation date for 19/20 will be 01 April 2019.
     * 
@@ -8,7 +8,7 @@ export class Helpers {
     * @param {string|Temporal} schemeStartDate - The calculation date (YYYY-MM-DD)
     * @returns {number} Age in full years
     */
-    static getAgeAtDate(dob, schemeStartDate) {
+    static getMemberAgeAtDate(dob, schemeStartDate) {
         // Calculate the duration between the two dates, getting the total years
         return dob.until(schemeStartDate, { largestUnit: 'years' }).years;
     }
@@ -77,10 +77,10 @@ export class Helpers {
     * @returns {number} Age at start of scheme
     */
     static getAgeAtSchemeStart(dob) {
-        const currentYear = Helpers.getCurrentYear();
-        const schemeDates = Helpers.getSchemeDatesForYear(currentYear);
+        const currentYear = MemberTimeline .getCurrentYear();
+        const schemeDates = MemberTimeline .getSchemeDatesForYear(currentYear);
 
-        const ageAtSchemeStart = Helpers.getAgeAtDate(dob, schemeDates.schemeStartDate);
+        const ageAtSchemeStart = MemberTimeline .getMemberAgeAtDate(dob, schemeDates.schemeStartDate);
         return ageAtSchemeStart;
     }
 

@@ -1,9 +1,9 @@
 ﻿import { AddedPension } from "../scripts/added-pension.js";
-import { cpiSeptember } from "../scripts/cpi-september.js";
-import { Helpers } from "../scripts/helper.js";
-import { CpiHelper } from "../scripts/cpi-helper.js";
+import { cpiSeptember } from "../data/inflation/cpi-september.js";
+import { MemberTimeline  } from "../scripts/member-timeline.js";
+import { CpiCalculator } from "./scripts/cpi-calculator.js";
 import TableEnhancer from "../scripts/table-enhancer.js";
-import { EmployeeContributions } from "../scripts/employee-contributions.js";
+import { EmployeeContributions } from "./scripts/employee-contributions.js";
 
 const THEME_KEY = 'pensionCalculatorTheme';
 const BREAKDOWN_COLUMN_VISIBILITY_KEY = 'historicSalaryBreakdownColumnVisibility';
@@ -279,7 +279,7 @@ function formatValidationErrors(errors) {
 
 class HistoricSalaryUI {
     constructor() {
-        this.cpiHelper = new CpiHelper();
+        this.cpiHelper = new CpiCalculator();
         const params = new URLSearchParams(window.location.search);
         this.STORAGE_KEY = params.get("storageKey") || "historic-salary-state";
 
@@ -339,7 +339,7 @@ class HistoricSalaryUI {
     }
 
     updateCurrentYearForYearlyBreakdownHeaders() {
-        this.currentYear = Helpers.getCurrentYear();
+        this.currentYear = MemberTimeline .getCurrentYear();
 
         document.querySelectorAll(`[data-bind="${DOM_BINDINGS.currentYear}"]`).forEach(el => {
             el.textContent = `${this.currentYear}`.slice(-2);
@@ -696,8 +696,8 @@ class HistoricSalaryUI {
         let totalAddedPension = 0;
 
         const detailedRows = allYears.map(year => {
-            const schemeDates = Helpers.getSchemeDatesForYear(year);
-            const age = Helpers.getAgeAtDate(settings.dob, schemeDates.schemeStartDate);
+            const schemeDates = MemberTimeline .getSchemeDatesForYear(year);
+            const age = MemberTimeline .getMemberAgeAtDate(settings.dob, schemeDates.schemeStartDate);
 
             const sp = this.getYearlySpSummary(
                 salaryByYear[year],

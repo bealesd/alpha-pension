@@ -1,9 +1,9 @@
-import { Helpers } from "../../scripts/helper.js";
+import { MemberTimeline  } from "../../scripts/member-timeline.js";
 
 export class RegularPension {
 
     calculate(memberData) {
-        const ageAtSchemeStart = Helpers.getAgeAtSchemeStart(memberData.dob);
+        const ageAtSchemeStart = MemberTimeline .getAgeAtSchemeStart(memberData.dob);
 
         let totalPension = 0;
         const contributionRate = 0.0232;
@@ -19,7 +19,7 @@ export class RegularPension {
 
     // helper: convert current lump sum to annual pension at retirement
     convertAccruedToAnnual(memberData) {
-        const ageAtSchemeStart = Helpers.getAgeAtSchemeStart(memberData.dob);
+        const ageAtSchemeStart = MemberTimeline .getAgeAtSchemeStart(memberData.dob);
 
         if (!memberData.accrued || memberData.accrued <= 0) return 0;
         const currentAge = ageAtSchemeStart;

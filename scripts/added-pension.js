@@ -1,24 +1,24 @@
-import { alphaAddedPensionByPeriodicalContributionFactorsForNpa202502 } from "./alpha-added-pension-by-periodical-contribution-factors-for-npa-2025-02.js";
-import { alphaAddedPensionRevaluationFactorByYears202502 } from "./alpha-added-pension-revaluation-factors-by-years-2025-02.js";
+import { alphaAddedPensionByPeriodicalContributionFactorsForNpa202502 } from "../data/factors/alpha-added-pension-by-periodical-contribution-factors-for-npa-2025-02.js";
+import { alphaAddedPensionRevaluationFactorByYears202502 } from "../data/factors/alpha-added-pension-revaluation-factors-by-years-2025-02.js";
 
-import { alphaAddedPensionByPeriodicalContributionFactorsForNpa201907 } from "./alpha-added-pension-by-periodical-contribution-factors-for-npa-2019-07.js";
-import { alphaAddedPensionRevaluationFactorByYears201907 } from "./alpha-added-pension-revaluation-factors-by-years-2019-07.js";
+import { alphaAddedPensionByPeriodicalContributionFactorsForNpa201907 } from "../data/factors/alpha-added-pension-by-periodical-contribution-factors-for-npa-2019-07.js";
+import { alphaAddedPensionRevaluationFactorByYears201907 } from "../data/factors/alpha-added-pension-revaluation-factors-by-years-2019-07.js";
 
-import { alphaAddedPensionByPeriodicalContributionFactorsForNpa201604 } from "./alpha-added-pension-by-periodical-contribution-factors-for-npa-2016-04.js";
-import { alphaAddedPensionRevaluationFactorByYears201506 } from "./alpha-added-pension-revaluation-factors-by-years-2015-06.js";
+import { alphaAddedPensionByPeriodicalContributionFactorsForNpa201604 } from "../data/factors/alpha-added-pension-by-periodical-contribution-factors-for-npa-2016-04.js";
+import { alphaAddedPensionRevaluationFactorByYears201506 } from "../data/factors/alpha-added-pension-revaluation-factors-by-years-2015-06.js";
 
-import { Helpers } from "./helper.js";
+import { MemberTimeline  } from "./member-timeline.js";
 
 export class AddedPension {
     calculate(memberData) {
         let totalAdded = 0;
         const stopAge = memberData.retirementAge;
 
-        const ageAtSchemeStart = Helpers.getAgeAtSchemeStart(memberData.dob);
+        const ageAtSchemeStart = MemberTimeline .getAgeAtSchemeStart(memberData.dob);
 
         // get the first scheme start year
         // this will then be incremented each year for pension calculations
-        let currentSchemaStartYear = Helpers.getCurrentYear();
+        let currentSchemaStartYear = MemberTimeline .getCurrentYear();
 
         for (let currentAge = ageAtSchemeStart; currentAge < memberData.retirementAge; currentAge++) {
             if (currentAge >= stopAge) continue;
@@ -62,12 +62,12 @@ export class AddedPension {
 
 
     calculateAddedPensionForYearForGivenAge = (totalContributionsForPeriod, type, dob, schemaStartYear, actuaryVersion = '2025-02') => {
-        const schemeDates = Helpers.getSchemeDatesForYear(schemaStartYear);
+        const schemeDates = MemberTimeline .getSchemeDatesForYear(schemaStartYear);
 
-        const currentAge = Helpers.getAgeAtDate(dob, schemeDates.schemeStartDate);
+        const currentAge = MemberTimeline .getMemberAgeAtDate(dob, schemeDates.schemeStartDate);
         const regularContributionFactor = this.getAddedPensionByPeriodicalContributionFactors(currentAge, type, actuaryVersion);
 
-        const numberOfAprils = Helpers.getAprilFirsts(dob, schemeDates.schemeEndDate);
+        const numberOfAprils = MemberTimeline .getAprilFirsts(dob, schemeDates.schemeEndDate);
         const revaluationFactor = this.getAddedPensionRevaluationFactorByYears(numberOfAprils, actuaryVersion);
 
         return Math.round(totalContributionsForPeriod / (regularContributionFactor * revaluationFactor));
