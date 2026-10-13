@@ -25,18 +25,16 @@ export class CpiCalculator {
     * 
     * @returns {number} Adjusted contributions
     */
-    getCpiAdjustedValue({ startYear, endYear, value, fallbackCpiRate = 0 }) {
+    getCpiAdjustedValue({ startYear, endYear, value}) {
         // Example: for 25/26 statement is the latest statement
         // Contributions should not be adjusted
         if (startYear === endYear)
             return value;
 
-        // this.addFutureYearsToCpiData({ endYear: endYear, fallbackCpiRate: fallbackCpiRate });
-
         // adjustment must be applied yearly
         while (startYear <= endYear) {
             const cpiForStartYear = cpiSeptember[startYear] ?? this.cpiLocal[startYear];
-            const cpiForPreviousYear = cpiSeptember[startYear - 1] ?? this.cpiSeptember[startYear - 1];
+            const cpiForPreviousYear = cpiSeptember[startYear - 1] ?? this.cpiLocal[startYear - 1];
             const cpiFactor = cpiForStartYear / cpiForPreviousYear;
             value = Number.isNaN(cpiFactor) ? value : value * cpiFactor;
             startYear++;
@@ -52,7 +50,7 @@ export class CpiCalculator {
     */
     getSingleYearCpiAdjustedValue(year, value) {
         const cpiForSchemeStartYear = cpiSeptember[year] ?? this.cpiLocal[year];
-        const cpiForPreviousYear = cpiSeptember[year - 1] ?? this.cpiSeptember[year - 1];
+        const cpiForPreviousYear = cpiSeptember[year - 1] ?? this.cpiLocal[year - 1];
         const cpiFactor = cpiForSchemeStartYear / cpiForPreviousYear;
         value = Number.isNaN(cpiFactor) ? value : value * cpiFactor;
         return value;
@@ -65,7 +63,7 @@ export class CpiCalculator {
     */
     getSingleYearCpi(year) {
         const cpiForSchemeStartYear = cpiSeptember[year] ?? this.cpiLocal[year];
-        const cpiForPreviousYear = cpiSeptember[year - 1] ?? this.cpiSeptember[year - 1];
+        const cpiForPreviousYear = cpiSeptember[year - 1] ?? this.cpiLocal[year - 1];
         if (Number.isNaN(cpiForSchemeStartYear / cpiForPreviousYear))
             return 0;
 

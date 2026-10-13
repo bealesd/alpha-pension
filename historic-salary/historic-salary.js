@@ -1,6 +1,6 @@
 ﻿import { AddedPension } from "../scripts/added-pension.js";
 import { cpiSeptember } from "../data/inflation/cpi-september.js";
-import { MemberTimeline  } from "../scripts/member-timeline.js";
+import { MemberTimeline } from "../scripts/member-timeline.js";
 import { CpiCalculator } from "./scripts/cpi-calculator.js";
 import TableEnhancer from "../scripts/table-enhancer.js";
 import { EmployeeContributions } from "./scripts/employee-contributions.js";
@@ -45,6 +45,7 @@ const DOM_IDS = Object.freeze({
 
 const DOM_BINDINGS = Object.freeze({
     currentYear: 'current-year',
+    latestYear: 'latest-year',
     lastYearOfCpi: 'last-year-of-cpi',
 });
 
@@ -282,6 +283,7 @@ class HistoricSalaryUI {
         this.cpiHelper = new CpiCalculator();
         const params = new URLSearchParams(window.location.search);
         this.STORAGE_KEY = params.get("storageKey") || "historic-salary-state";
+        this.currentYear = MemberTimeline.getCurrentYear();
 
         this.addedPension = new AddedPension();
         this.enhancedBreakdownTable = null;
@@ -289,12 +291,6 @@ class HistoricSalaryUI {
 
         this.registerEventListeners();
 
-        const lastYearOfCpi = Math.max(...Object.keys(cpiSeptember).map(Number));
-        document.querySelectorAll(`[data-bind="${DOM_BINDINGS.lastYearOfCpi}"]`).forEach(el => {
-            el.textContent = `${lastYearOfCpi}`;
-        });
-
-        this.updateCurrentYearForYearlyBreakdownHeaders();
         this.renderBreakdownColumnControls();
 
         this.loadTheme();
@@ -303,6 +299,42 @@ class HistoricSalaryUI {
 
         this.addTableSortingForAp();
         this.addTableSortingForSalary();
+
+        this.updateDataBindings({
+            currentYear: this.currentYear,
+            latestYear: this.latestYear,
+            lastYearOfCpi: Math.max(...Object.keys(cpiSeptember).map(Number))
+        }, this.bindingHandlers());
+    }
+
+    bindingHandlers() {
+        return {
+            [DOM_BINDINGS.currentYear]: (el, state) => {
+                if (el instanceof HTMLInputElement) {
+                    if (el.value === '')
+                        el.value = String(state.currentYear);
+                    el.max = String(state.currentYear + 99);
+                } else {
+                    el.textContent = String(state.currentYear).slice(-2);
+                }
+            },
+
+            [DOM_BINDINGS.latestYear]: (el, state) => {
+                el.textContent = String(state.latestYear).slice(-2);
+            },
+
+            [DOM_BINDINGS.lastYearOfCpi]: (el, state) => {
+                el.textContent = String(state.lastYearOfCpi);
+            }
+        };
+    }
+
+    updateDataBindings(state, bindingHandlers) {
+        Object.entries(bindingHandlers).forEach(([binding, handler]) => {
+            document
+                .querySelectorAll(`[data-bind="${binding}"]`)
+                .forEach((el) => handler(el, state));
+        });
     }
 
     registerEventListeners() {
@@ -336,14 +368,6 @@ class HistoricSalaryUI {
         dobInput.addEventListener('input', this.handleInput.bind(this));
         cpiInput.addEventListener('input', this.handleInput.bind(this));
         themeToggle.addEventListener('click', this.handleThemeToggle.bind(this));
-    }
-
-    updateCurrentYearForYearlyBreakdownHeaders() {
-        this.currentYear = MemberTimeline .getCurrentYear();
-
-        document.querySelectorAll(`[data-bind="${DOM_BINDINGS.currentYear}"]`).forEach(el => {
-            el.textContent = `${this.currentYear}`.slice(-2);
-        });
     }
 
     loadTheme() {
@@ -596,7 +620,7 @@ class HistoricSalaryUI {
             [ADDED_PENSION_GROUP.TOTAL]: this.getEmptyPensionSummary(),
             [ADDED_PENSION_GROUP.SELF]: this.getEmptyPensionSummary(),
             [ADDED_PENSION_GROUP.DEPENDANTS]: this.getEmptyPensionSummary()
-        };      
+        };
 
         for (const row of addedRowsForYear) {
             if (!isAddedPensionType(row.type)) {
@@ -689,15 +713,15 @@ class HistoricSalaryUI {
             .map(Number)
             .sort((a, b) => a - b);
 
-        const maxYear = Math.max(...allYears);
-        this.cpiHelper.addFutureYearsToCpiData({ endYear: maxYear, fallbackCpiRate: settings.cpi });
+        this.latestYear = Math.max(...allYears);
+        this.cpiHelper.addFutureYearsToCpiData({ endYear: this.latestYear, fallbackCpiRate: settings.cpi });
 
         let totalSalaryPension = 0;
         let totalAddedPension = 0;
 
         const detailedRows = allYears.map(year => {
-            const schemeDates = MemberTimeline .getSchemeDatesForYear(year);
-            const age = MemberTimeline .getMemberAgeAtDate(settings.dob, schemeDates.schemeStartDate);
+            const schemeDates = MemberTimeline.getSchemeDatesForYear(year);
+            const age = MemberTimeline.getMemberAgeAtDate(settings.dob, schemeDates.schemeStartDate);
 
             const sp = this.getYearlySpSummary(
                 salaryByYear[year],

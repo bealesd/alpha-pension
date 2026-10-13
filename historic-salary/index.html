@@ -195,8 +195,8 @@
                                 <th class="sp-info">SP Rise</th>
                                 <th class="sp-info">Close SP</th>
 
-                                <th class="sp-info-extra group-start">SP <span data-bind="current-year"></span></th>
-                                <th class="sp-info-extra">Close SP <span data-bind="current-year"></span></th>
+                                <th class="sp-info-extra group-start">SP <span data-bind="latest-year"></span></th>
+                                <th class="sp-info-extra">Close SP <span data-bind="latest-year"></span></th>
 
                                 <th class="ap-info ap-total group-start">Open AP</th>
                                 <th class="ap-info ap-total">AP Spent</th>
@@ -204,8 +204,8 @@
                                 <th class="ap-info ap-total">AP Rise</th>
                                 <th class="ap-info ap-total">Close AP</th>
 
-                                <th class="ap-info-extra group-start">AP <span data-bind="current-year"></span></th>
-                                <th class="ap-info-extra">Close AP <span data-bind="current-year"></span></th>
+                                <th class="ap-info-extra group-start">AP <span data-bind="latest-year"></span></th>
+                                <th class="ap-info-extra">Close AP <span data-bind="latest-year"></span></th>
 
                                 <th class="ap-info ap-self group-start">Open AP Self</th>
                                 <th class="ap-info ap-self">AP Spent</th>
@@ -219,8 +219,8 @@
                                 <th class="ap-info ap-dependants">AP Rise</th>
                                 <th class="ap-info ap-dependants">Close AP Dependants</th>
 
-                                <th class="info group-start">Pension Increase <span data-bind="current-year"></span></th>
-                                <th class="info">Total Pension <span data-bind="current-year"></span></th>
+                                <th class="info group-start">Pension Increase <span data-bind="latest-year"></span></th>
+                                <th class="info">Total Pension <span data-bind="latest-year"></span></th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -232,7 +232,7 @@
 
     <template id="salary-row">
         <tr>
-            <td><input type="number" class="year" value="2024" min="2016" max="2025"></td>
+            <td><input type="number" class="year" data-bind="current-year" min="2016"></td>
             <td><input type="number" class="salary" value="40000" min="0" step="100"></td>
             <td>
                 <button type="button" class="remove-row" title="Remove row" aria-label="Remove salary row">✕</button>
@@ -242,7 +242,7 @@
 
     <template id="added-row">
         <tr>
-            <td><input type="number" class="year" value="2024" min="2016" max="2025"></td>
+            <td><input type="number" class="year" data-bind="current-year" min="2016" ></td>
 
             <td>
                 <select class="actuary-version">
