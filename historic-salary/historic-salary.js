@@ -279,6 +279,13 @@ function formatValidationErrors(errors) {
 }
 
 class HistoricSalaryUI {
+    currentYear;
+    latestYear;
+    STORAGE_KEY;
+    cpiHelper;
+    DEFAULT_SALARY = 40000;
+    DEFAULT_ADDED = 4000;
+
     constructor() {
         this.cpiHelper = new CpiCalculator();
         const params = new URLSearchParams(window.location.search);
@@ -426,21 +433,15 @@ class HistoricSalaryUI {
 
     handleAddSalaryRow(event) {
         event.preventDefault();
-        this.addSalaryRow({ year: this.currentYear, salary: 0 });
+        const lastSalary = this.getLastSalaryRow();
+        this.addSalaryRow(lastSalary);
         this.update();
     }
 
     handleAddAddedRow(event) {
         event.preventDefault();
-
-        this.addAddedRow({
-            year: this.currentYear,
-            type: ADDED_PENSION_TYPE.SELF,
-            period: ADDED_PENSION_PERIOD.YEAR,
-            added: 0,
-            actuaryVersion: DEFAULT_ACTUARY_VERSION
-        });
-
+        const lastAdded = this.getLastAddedRow();
+        this.addAddedRow(lastAdded);
         this.update();
     }
 
@@ -523,6 +524,30 @@ class HistoricSalaryUI {
             .sort((a, b) => a.year - b.year);
     }
 
+    getLastSalaryRow() {
+        const salaryTableBody = document.querySelector(`#${DOM_IDS.salaryTable} tbody`);
+        if (!salaryTableBody) return null;
+
+        return [...salaryTableBody.querySelectorAll('tr')]
+            .map(row => {
+                const yearValue = Number(row.querySelector(`.${DOM_CLASSES.year}`)?.value) || 0;
+                const salaryValue = Number(row.querySelector(`.${DOM_CLASSES.salary}`)?.value) || 0;
+
+                return {
+                    year: yearValue > 0 ?
+                        yearValue + 1 < this.currentYear + 99 ? yearValue + 1 : yearValue :
+                        0,
+                    salary: salaryValue
+                };
+            })
+            .filter(row => row.year > 0)
+            .sort((a, b) => a.year - b.year)
+            .at(-1) ?? {
+            year: this.currentYear,
+            salary: this.DEFAULT_SALARY
+        };
+    }
+
     getAddedRows() {
         const addedTableBody = document.querySelector(`#${DOM_IDS.addedTable} tbody`);
 
@@ -536,6 +561,34 @@ class HistoricSalaryUI {
             }))
             .filter(row => row.year > 0)
             .sort((a, b) => a.year - b.year);
+    }
+
+    getLastAddedRow() {
+        const addedTableBody = document.querySelector(`#${DOM_IDS.addedTable} tbody`);
+
+        return [...addedTableBody.querySelectorAll('tr')]
+            .map(row => {
+                const yearValue = Number(row.querySelector(`.${DOM_CLASSES.year}`).value) || 0;
+                
+                return {
+                    year: yearValue > 0 ?
+                        yearValue + 1 < this.currentYear + 99 ? yearValue + 1 : yearValue :
+                        0,
+                    actuaryVersion: row.querySelector(`.${DOM_CLASSES.actuaryVersion}`).value,
+                    type: row.querySelector(`.${DOM_CLASSES.type}`).value,
+                    period: row.querySelector(`.${DOM_CLASSES.period}`).value,
+                    added: Number(row.querySelector(`.${DOM_CLASSES.added}`).value) || 0
+                }
+            })
+            .filter(row => row.year > 0)
+            .sort((a, b) => a.year - b.year)
+            .at(-1) ?? {
+            year: this.currentYear,
+            added: this.DEFAULT_ADDED,
+            actuaryVersion: DEFAULT_ACTUARY_VERSION,
+            period: ADDED_PENSION_PERIOD.YEAR,
+            type: ADDED_PENSION_TYPE.SELF
+        };
     }
 
     getSettings() {
